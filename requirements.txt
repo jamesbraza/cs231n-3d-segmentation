@@ -1,0 +1,4 @@
+kaggle  # Downloading datasets
+numpy>=1.21  # For numpy.typing
+tensorboard
+torch

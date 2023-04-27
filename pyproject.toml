@@ -98,8 +98,8 @@ plugins = ["numpy.typing.mypy_plugin"]
 
 select = ["ALL"]
 ignore = [
-    "ANN",
-    "BLE001",
+    "ANN",  # Don't care to enforce typing
+    "BLE001",  # Don't care to enforce blind exception catching
     "D100",  # D100, D101, D102, D103, D104, D105, D106, D107: don't always need docstrings
     "D101",
     "D102",
@@ -114,19 +114,19 @@ ignore = [
     "D406",  # Google style requires ":" at end
     "D407",  # We aren't using numpy style
     "D413",  # Blank line after last section. -> No blank line
-    "DTZ005",
-    "DTZ007",
-    "EM101",
-    "EM102",
-    "FBT",
-    "G004",
-    "INP001",
+    "DTZ",  # Don't care to have timezone safety
+    "EM",  # Overly pedantic
+    "FBT001",  # FBT001, FBT002: overly pedantic
+    "FBT002",
+    "G004",  # f-strings are convenient
+    "INP001",  # We use namespace packages
     "PL",  # Duplicates pylint
-    "PTH",
-    "SLF001",
+    "PTH",  # Overly pedantic
+    "SLF001",  # Overly pedantic
+    "TCH001",  # TCH001, TCH002, TCH003: don't care to enforce type checking blocks
     "TCH002",
     "TCH003",
-    "TRY003",
+    "TRY003",  # Overly pedantic
 ]
 
 [tool.ruff.flake8-annotations]

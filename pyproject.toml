@@ -119,7 +119,6 @@ ignore = [
     "FBT001",  # FBT001, FBT002: overly pedantic
     "FBT002",
     "G004",  # f-strings are convenient
-    "INP001",  # We use namespace packages
     "PL",  # Duplicates pylint
     "PTH",  # Overly pedantic
     "SLF001",  # Overly pedantic
@@ -128,6 +127,9 @@ ignore = [
     "TCH003",
     "TRY003",  # Overly pedantic
 ]
+
+# Line length to use when enforcing long-lines violations (like `E501`).
+line-length = 97  # ceil(1.1 * 88) makes `E501` equivalent to `B950`
 
 [tool.ruff.flake8-annotations]
 

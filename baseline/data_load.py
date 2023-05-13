@@ -132,8 +132,6 @@ def get_dataloader(
 
 
 def main() -> None:
-    from baseline.data_load import BratsDataset, get_dataloader
-
     dataloader = get_dataloader(
         dataset=BratsDataset,
         path_to_csv="train_data.csv",

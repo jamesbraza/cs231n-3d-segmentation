@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from baseline.config import GlobalConfig
 from baseline.config import config as default_config
 from baseline.data_load import BratsDataset, get_dataloader
-from baseline.model import UNet3d
 from baseline.model_utils import BCEDiceLoss, Meter, compute_scores_per_classes
 from baseline.training_utils import (
     Image3dToGIF3d,
@@ -21,6 +20,7 @@ from baseline.training_utils import (
     compute_results,
     merging_two_gif,
 )
+from baseline.unet_model import UNet3d
 
 
 class Trainer:

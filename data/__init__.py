@@ -1,0 +1,17 @@
+import pathlib
+
+DATA_FOLDER = pathlib.Path(__file__).parent
+BRATS_2020_TRAINING_VALIDATION_DATASET_FOLDER = (
+    DATA_FOLDER / "brats2020-training-validation-data"
+)
+
+BRATS_2020_TRAINING_FOLDER = (
+    BRATS_2020_TRAINING_VALIDATION_DATASET_FOLDER
+    / "BraTS2020_TrainingData"
+    / "MICCAI_BraTS2020_TrainingData"
+)
+BRATS_2020_VALIDATION_FOLDER = (
+    BRATS_2020_TRAINING_VALIDATION_DATASET_FOLDER
+    / "BraTS2020_ValidationData"
+    / "MICCAI_BraTS2020_ValidationData"
+)

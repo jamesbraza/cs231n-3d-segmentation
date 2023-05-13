@@ -116,9 +116,11 @@ ignore = [
     "D413",  # Blank line after last section. -> No blank line
     "DTZ",  # Don't care to have timezone safety
     "EM",  # Overly pedantic
+    "ERA001",  # Nice for project
     "FBT001",  # FBT001, FBT002: overly pedantic
     "FBT002",
     "G004",  # f-strings are convenient
+    "N816",  # Nice for project
     "PL",  # Duplicates pylint
     "PTH",  # Overly pedantic
     "SLF001",  # Overly pedantic

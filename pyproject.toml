@@ -124,6 +124,7 @@ ignore = [
     "PL",  # Duplicates pylint
     "PTH",  # Overly pedantic
     "SLF001",  # Overly pedantic
+    "T201",  # Nice for project
     "TCH001",  # TCH001, TCH002, TCH003: don't care to enforce type checking blocks
     "TCH002",
     "TCH003",

@@ -1,3 +1,6 @@
 # From visualize.py
 data_sample.png
 data_sample.svg
+
+# From config.py
+logs/

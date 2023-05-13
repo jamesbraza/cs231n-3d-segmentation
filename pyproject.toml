@@ -110,6 +110,8 @@ ignore = [
     "D106",
     "D107",
     "D203",  # Keep docstring next to the class definition (covered by D211)
+    "D205",  # Loosen docstring conventions for project
+    "D209",  # Conflicts with docformatter config
     "D212",  # Summary should be on second line (opposite of D213)
     "D402",  # It's nice to reuse the method name
     "D406",  # Google style requires ":" at end
@@ -141,3 +143,9 @@ line-length = 97  # ceil(1.1 * 88) makes `E501` equivalent to `B950`
 [tool.ruff.flake8-annotations]
 
 mypy-init-return = true
+
+[tool.ruff.pydocstyle]
+
+# Whether to use Google-style or NumPy-style conventions or the PEP257
+# defaults when analyzing docstring sections.
+convention = "google"

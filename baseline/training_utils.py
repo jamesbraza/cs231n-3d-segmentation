@@ -82,7 +82,7 @@ class Image3dToGIF3d:
         title: str = "",
         init_angle: int = 0,
         make_gif: bool = False,
-        path_to_save: str = "filename.gif",
+        path_to_save: str = "filename",
     ):
         """
         Plot 3d data.
@@ -92,7 +92,7 @@ class Image3dToGIF3d:
             title: title for figure.
             init_angle: angle for image plot (from 0-360).
             make_gif: if True create gif from every 5th frames from 3d image plot.
-            path_to_save: path to save GIF file.
+            path_to_save: path to save GIF or PNG file.
         """
         if self.binary:
             facecolors = cm.winter(cube)
@@ -127,14 +127,24 @@ class Image3dToGIF3d:
                     ax.view_init(30, angle)
                     fname = str(angle) + ".png"
 
-                    plt.savefig(fname, dpi=120, format="png", bbox_inches="tight")
+                    plt.savefig(
+                        f"{path_to_save}.gif",
+                        dpi=120,
+                        format="png",
+                        bbox_inches="tight",
+                    )
                     images.append(imageio.imread(fname))
                     # os.remove(fname)
                 imageio.mimsave(path_to_save, images)
                 plt.close()
 
             else:
-                plt.show()
+                plt.savefig(
+                    f"{path_to_save}.png",
+                    dpi=120,
+                    format="png",
+                    bbox_inches="tight",
+                )
 
 
 def compute_results(model, dataloader, threshold=0.33) -> dict[str, list]:
@@ -181,7 +191,7 @@ class ShowResult:
         image = np.moveaxis(image, (0, 1, 2, 3), (0, 3, 2, 1))
         return np.rot90(montage(image[0]))
 
-    def plot(self, image, ground_truth, prediction):
+    def plot(self, image, ground_truth, prediction, save_name: str | None = "result"):
         image = self.image_preprocessing(image)
         gt_mask_WT, gt_mask_TC, gt_mask_ET = self.mask_preprocessing(ground_truth)
         pr_mask_WT, pr_mask_TC, pr_mask_ET = self.mask_preprocessing(prediction)
@@ -227,7 +237,11 @@ class ShowResult:
 
         plt.tight_layout()
 
-        plt.show()
+        if save_name is None:
+            plt.show()
+        else:
+            fig.savefig(f"{save_name}.png", format="png", bbox_inches="tight")
+            fig.savefig(f"{save_name}.svg", format="svg", bbox_inches="tight")
 
 
 # show_result = ShowResult()

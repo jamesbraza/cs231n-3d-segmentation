@@ -5,6 +5,9 @@ data_sample.svg
 # From config.py
 logs/
 
-# From predict.py
+# From training.py
 result1.png
 result1.svg
+result.gif
+Ground Truth_*_3d.gif
+Prediction_*_3d.gif

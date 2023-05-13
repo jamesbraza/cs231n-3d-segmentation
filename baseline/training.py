@@ -1,17 +1,26 @@
 import time
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
 import torch
-from IPython.display import clear_output
+from IPython.display import Image, clear_output, display
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-from baseline.config import config
+from baseline.config import GlobalConfig
+from baseline.config import config as default_config
 from baseline.data_load import BratsDataset, get_dataloader
 from baseline.model import UNet3d
-from baseline.model_utils import BCEDiceLoss, Meter
+from baseline.model_utils import BCEDiceLoss, Meter, compute_scores_per_classes
+from baseline.training_utils import (
+    Image3dToGIF3d,
+    ShowResult,
+    compute_results,
+    merging_two_gif,
+)
 
 
 class Trainer:
@@ -187,8 +196,139 @@ class Trainer:
         )
 
 
-def main() -> None:
-    model = UNet3d(in_channels=4, n_classes=3, n_channels=24).to("cuda")
+def visualize_post_training(model: UNet3d) -> None:
+    val_dataloader = get_dataloader(
+        BratsDataset,
+        "train_data.csv",
+        phase="valid",
+        fold=0,
+    )
+    print(len(val_dataloader))
+
+    model.eval()
+    dice_scores_per_classes, iou_scores_per_classes = compute_scores_per_classes(
+        model,
+        val_dataloader,
+        ["WT", "TC", "ET"],
+    )
+    dice_df = pd.DataFrame(dice_scores_per_classes)
+    dice_df.columns = ["WT dice", "TC dice", "ET dice"]
+
+    iou_df = pd.DataFrame(iou_scores_per_classes)
+    iou_df.columns = ["WT jaccard", "TC jaccard", "ET jaccard"]
+    val_metics_df = pd.concat([dice_df, iou_df], axis=1, sort=True)
+    val_metics_df = val_metics_df.loc[
+        :,
+        ["WT dice", "WT jaccard", "TC dice", "TC jaccard", "ET dice", "ET jaccard"],
+    ]
+    val_metics_df.sample(5)
+    colors = ["#35FCFF", "#FF355A", "#96C503", "#C5035B", "#28B463", "#35FFAF"]
+    palette = sns.color_palette(colors, 6)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.barplot(
+        x=val_metics_df.mean().index,
+        y=val_metics_df.mean(),
+        palette=palette,
+        ax=ax,
+    )
+    ax.set_xticklabels(val_metics_df.columns, fontsize=14, rotation=15)
+    ax.set_title("Dice and Jaccard Coefficients from Validation", fontsize=20)
+
+    for idx, p in enumerate(ax.patches):
+        percentage = "{:.1f}%".format(100 * val_metics_df.mean().to_numpy()[idx])
+        x = p.get_x() + p.get_width() / 2 - 0.15
+        y = p.get_y() + p.get_height()
+        ax.annotate(percentage, (x, y), fontsize=15, fontweight="bold")
+
+    fig.savefig(
+        "result1.png",
+        format="png",
+        pad_inches=0.2,
+        transparent=False,
+        bbox_inches="tight",
+    )
+    fig.savefig(
+        "result1.svg",
+        format="svg",
+        pad_inches=0.2,
+        transparent=False,
+        bbox_inches="tight",
+    )
+
+    results = compute_results(model, val_dataloader, 0.33)
+    for id_, img, gt, prediction in zip(
+        results["Id"][4:],
+        results["image"][4:],
+        results["GT"][4:],
+        results["Prediction"][4:],
+        strict=True,
+    ):
+        print(id_)
+        show_result = ShowResult()
+        show_result.plot(img, gt, prediction)
+
+        # Ground truth
+        gt = gt.squeeze().cpu().detach().numpy()
+        gt = np.moveaxis(gt, (0, 1, 2, 3), (0, 3, 2, 1))
+        wt, tc, et = gt
+        print(wt.shape, tc.shape, et.shape)
+        gt = wt + tc + et
+        gt = np.clip(gt, 0, 1)
+        print(gt.shape)
+
+        title = "Ground Truth_" + id_[0]
+        filename1 = title + "_3d.gif"
+
+        data_to_3dgif = Image3dToGIF3d(
+            img_dim=(120, 120, 78),
+            binary=True,
+            normalizing=False,
+        )
+        transformed_data = data_to_3dgif.get_transformed_data(gt)
+        data_to_3dgif.plot_cube(
+            transformed_data,
+            title=title,
+            make_gif=True,
+            path_to_save=filename1,
+        )
+
+        # Prediction
+        prediction = prediction.squeeze().cpu().detach().numpy()
+        prediction = np.moveaxis(prediction, (0, 1, 2, 3), (0, 3, 2, 1))
+        wt, tc, et = prediction
+        print(wt.shape, tc.shape, et.shape)
+        prediction = wt + tc + et
+        prediction = np.clip(prediction, 0, 1)
+        print(prediction.shape)
+
+        title = "Prediction_" + id_[0]
+        filename2 = title + "_3d.gif"
+
+        data_to_3dgif = Image3dToGIF3d(
+            img_dim=(120, 120, 78),
+            binary=True,
+            normalizing=False,
+        )
+        transformed_data = data_to_3dgif.get_transformed_data(prediction)
+        data_to_3dgif.plot_cube(
+            transformed_data,
+            title=title,
+            make_gif=True,
+            path_to_save=filename2,
+        )
+
+        merging_two_gif(filename1, filename2, "result.gif")
+        display(Image("result.gif", format="png"))
+        break
+
+
+def main(config: GlobalConfig | None = None) -> None:
+    if config is None:
+        config = GlobalConfig(pretrained_model_path=None)
+    model = UNet3d(in_channels=4, n_classes=3, n_channels=24)
+    if torch.cuda.is_available():
+        model = model.to("cuda")
     trainer = Trainer(
         net=model,
         dataset=BratsDataset,
@@ -200,7 +340,6 @@ def main() -> None:
         num_epochs=1,
         path_to_csv=config.path_to_csv,
     )
-
     if config.pretrained_model_path is not None:
         trainer.load_predtrain_model(config.pretrained_model_path)
 
@@ -212,8 +351,10 @@ def main() -> None:
         trainer.dice_scores["val"] = train_logs.loc[:, "val_dice"].to_list()
         trainer.jaccard_scores["train"] = train_logs.loc[:, "train_jaccard"].to_list()
         trainer.jaccard_scores["val"] = train_logs.loc[:, "val_jaccard"].to_list()
+
     trainer.run()
+    visualize_post_training(model)
 
 
 if __name__ == "__main__":
-    main()
+    main(config=default_config)

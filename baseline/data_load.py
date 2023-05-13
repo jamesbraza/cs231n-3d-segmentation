@@ -1,11 +1,13 @@
 import os
 
+import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import pandas as pd
 import torch
 from albumentations import Compose
 from skimage.transform import resize
+from skimage.util import montage
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -127,3 +129,35 @@ def get_dataloader(
         pin_memory=True,
         shuffle=True,
     )
+
+
+def main() -> None:
+    from baseline.data_load import BratsDataset, get_dataloader
+
+    dataloader = get_dataloader(
+        dataset=BratsDataset,
+        path_to_csv="train_data.csv",
+        phase="valid",
+        fold=0,
+    )
+    print(len(dataloader))
+    data = next(iter(dataloader))
+    print(data["Id"], data["image"].shape, data["mask"].shape)
+
+    img_tensor = data["image"].squeeze()[0].cpu().detach().numpy()
+    mask_tensor = data["mask"].squeeze()[0].squeeze().cpu().detach().numpy()
+    print("Num uniq Image values :", len(np.unique(img_tensor, return_counts=True)[0]))
+    print("Min/Max Image values:", img_tensor.min(), img_tensor.max())
+    print("Num uniq Mask values:", np.unique(mask_tensor, return_counts=True))
+
+    image = np.rot90(montage(img_tensor))
+    mask = np.rot90(montage(mask_tensor))
+
+    fig, ax = plt.subplots(1, 1, figsize=(20, 20))
+    ax.imshow(image, cmap="bone")
+    ax.imshow(np.ma.masked_where(mask is False, mask), cmap="cool", alpha=0.6)
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()

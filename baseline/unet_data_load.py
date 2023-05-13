@@ -11,6 +11,10 @@ from skimage.util import montage
 from torch.utils.data import DataLoader, Dataset
 
 
+def get_augmentations(phase):
+    return Compose([])
+
+
 class BratsDataset(Dataset):
     def __init__(self, df: pd.DataFrame, phase: str = "test", is_resize: bool = False):
         self.df = df
@@ -101,10 +105,6 @@ class BratsDataset(Dataset):
         mask = np.moveaxis(mask, (0, 1, 2, 3), (0, 3, 2, 1))
 
         return mask
-
-
-def get_augmentations(phase):
-    return Compose([])
 
 
 def get_dataloader(

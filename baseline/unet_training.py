@@ -197,7 +197,7 @@ class Trainer:
         )
 
 
-def visualize_results(model, dataloader: DataLoader) -> None:
+def visualize_results(model, dataloader: DataLoader, save_gif: bool = True) -> None:
     model.eval()
     results = compute_results(model, dataloader, 0.33)
     for id_, img, gt, prediction in zip(
@@ -221,7 +221,7 @@ def visualize_results(model, dataloader: DataLoader) -> None:
         print(gt.shape)
 
         title = "Ground Truth_" + id_[0]
-        filename1 = title + "_3d.gif"
+        filename1 = title + "_3d"
 
         data_to_3dgif = Image3dToGIF3d(
             img_dim=(120, 120, 78),
@@ -232,7 +232,7 @@ def visualize_results(model, dataloader: DataLoader) -> None:
         data_to_3dgif.plot_cube(
             transformed_data,
             title=title,
-            make_gif=True,
+            make_gif=save_gif,
             path_to_save=filename1,
         )
 
@@ -246,7 +246,7 @@ def visualize_results(model, dataloader: DataLoader) -> None:
         print(prediction.shape)
 
         title = "Prediction_" + id_[0]
-        filename2 = title + "_3d.gif"
+        filename2 = title + "_3d"
 
         data_to_3dgif = Image3dToGIF3d(
             img_dim=(120, 120, 78),
@@ -257,28 +257,21 @@ def visualize_results(model, dataloader: DataLoader) -> None:
         data_to_3dgif.plot_cube(
             transformed_data,
             title=title,
-            make_gif=True,
+            make_gif=save_gif,
             path_to_save=filename2,
         )
 
-        merging_two_gif(filename1, filename2, "result.gif")
-        display(Image("result.gif", format="png"))
+        if save_gif:
+            merging_two_gif(filename1, filename2, "result.gif")
+            display(Image("result.gif", format="png"))
         break
 
 
-def visualize_post_training(model: UNet3d) -> None:
-    val_dataloader = get_dataloader(
-        BratsDataset,
-        "train_data.csv",
-        phase="valid",
-        fold=0,
-    )
-    print(len(val_dataloader))
-
+def visualize_metrics(model: UNet3d, dataloader: DataLoader) -> None:
     model.eval()
     dice_scores_per_classes, iou_scores_per_classes = compute_scores_per_classes(
         model,
-        val_dataloader,
+        dataloader,
         ["WT", "TC", "ET"],
     )
     dice_df = pd.DataFrame(dice_scores_per_classes)
@@ -326,6 +319,17 @@ def visualize_post_training(model: UNet3d) -> None:
         bbox_inches="tight",
     )
 
+
+def visualize_post_training(model: UNet3d) -> None:
+    val_dataloader = get_dataloader(
+        BratsDataset,
+        "train_data.csv",
+        phase="valid",
+        fold=0,
+    )
+    print(len(val_dataloader))
+
+    visualize_metrics(model, val_dataloader)
     visualize_results(model, val_dataloader)
 
 

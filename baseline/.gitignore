@@ -1,18 +1,7 @@
-# From visualize.py
-data_sample.png
-data_sample.svg
-
 # From config.py
 logs/
 
-# From unet_training.py
-result1.png
-result1.svg
-result.gif
-Ground Truth_*_3d.gif
-Prediction_*_3d.gif
-
-# From autoencoder_training.py
-AE_Ground_Truth_*_3d.gif
-AE_Prediction_*_3d.gif
-AE_result.gif
+# From various files saving images/GIFs
+*.png
+*.svg
+*.gif

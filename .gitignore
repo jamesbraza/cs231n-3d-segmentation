@@ -328,4 +328,5 @@ override.tf.json
 terraform.rc
 
 # Datasets
-data/brats2020/
+data/brats2020-training-data/
+data/brats2020-training-validation-data/

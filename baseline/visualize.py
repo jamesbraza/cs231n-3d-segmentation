@@ -18,6 +18,8 @@ sample_img = np.rot90(sample_img)
 sample_mask = nib.load(sample_filename_mask)
 sample_mask = np.asanyarray(sample_mask.dataobj)
 sample_mask = np.rot90(sample_mask)
+print("img shape ->", sample_img.shape)
+print("mask shape ->", sample_mask.shape)
 
 sample_filename2 = TRAINING_001 / "BraTS20_Training_001_t1.nii"
 sample_img2 = nib.load(sample_filename2)

@@ -19,7 +19,7 @@ from baseline.training_utils import (
     compute_results,
     merging_two_gif,
 )
-from baseline.unet_data import BratsDataset, get_dataloader
+from baseline.unet_data import BratsDataset, DataLoader, get_dataloader
 from baseline.unet_model import UNet3d
 
 
@@ -176,9 +176,10 @@ class Trainer:
             plt.tight_layout()
             plt.show()
 
-    def load_predtrain_model(self, state_path: str):
-        self.net.load_state_dict(torch.load(state_path))
-        print("Predtrain model loaded")
+    def load_pretrained_model(self, state_path: str):
+        map_location = None if torch.cuda.is_available() else torch.device("cpu")
+        self.net.load_state_dict(torch.load(state_path, map_location=map_location))
+        print("Pretrained model loaded")
 
     def _save_train_history(self):
         """Write model weights and training logs to files."""
@@ -196,67 +197,9 @@ class Trainer:
         )
 
 
-def visualize_post_training(model: UNet3d) -> None:
-    val_dataloader = get_dataloader(
-        BratsDataset,
-        "train_data.csv",
-        phase="valid",
-        fold=0,
-    )
-    print(len(val_dataloader))
-
+def visualize_results(model, dataloader: DataLoader) -> None:
     model.eval()
-    dice_scores_per_classes, iou_scores_per_classes = compute_scores_per_classes(
-        model,
-        val_dataloader,
-        ["WT", "TC", "ET"],
-    )
-    dice_df = pd.DataFrame(dice_scores_per_classes)
-    dice_df.columns = ["WT dice", "TC dice", "ET dice"]
-
-    iou_df = pd.DataFrame(iou_scores_per_classes)
-    iou_df.columns = ["WT jaccard", "TC jaccard", "ET jaccard"]
-    val_metics_df = pd.concat([dice_df, iou_df], axis=1, sort=True)
-    val_metics_df = val_metics_df.loc[
-        :,
-        ["WT dice", "WT jaccard", "TC dice", "TC jaccard", "ET dice", "ET jaccard"],
-    ]
-    val_metics_df.sample(5)
-    colors = ["#35FCFF", "#FF355A", "#96C503", "#C5035B", "#28B463", "#35FFAF"]
-    palette = sns.color_palette(colors, 6)
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.barplot(
-        x=val_metics_df.mean().index,
-        y=val_metics_df.mean(),
-        palette=palette,
-        ax=ax,
-    )
-    ax.set_xticklabels(val_metics_df.columns, fontsize=14, rotation=15)
-    ax.set_title("Dice and Jaccard Coefficients from Validation", fontsize=20)
-
-    for idx, p in enumerate(ax.patches):
-        percentage = "{:.1f}%".format(100 * val_metics_df.mean().to_numpy()[idx])
-        x = p.get_x() + p.get_width() / 2 - 0.15
-        y = p.get_y() + p.get_height()
-        ax.annotate(percentage, (x, y), fontsize=15, fontweight="bold")
-
-    fig.savefig(
-        "result1.png",
-        format="png",
-        pad_inches=0.2,
-        transparent=False,
-        bbox_inches="tight",
-    )
-    fig.savefig(
-        "result1.svg",
-        format="svg",
-        pad_inches=0.2,
-        transparent=False,
-        bbox_inches="tight",
-    )
-
-    results = compute_results(model, val_dataloader, 0.33)
+    results = compute_results(model, dataloader, 0.33)
     for id_, img, gt, prediction in zip(
         results["Id"][4:],
         results["image"][4:],
@@ -323,7 +266,70 @@ def visualize_post_training(model: UNet3d) -> None:
         break
 
 
-def main(config: GlobalConfig | None = None) -> None:
+def visualize_post_training(model: UNet3d) -> None:
+    val_dataloader = get_dataloader(
+        BratsDataset,
+        "train_data.csv",
+        phase="valid",
+        fold=0,
+    )
+    print(len(val_dataloader))
+
+    model.eval()
+    dice_scores_per_classes, iou_scores_per_classes = compute_scores_per_classes(
+        model,
+        val_dataloader,
+        ["WT", "TC", "ET"],
+    )
+    dice_df = pd.DataFrame(dice_scores_per_classes)
+    dice_df.columns = ["WT dice", "TC dice", "ET dice"]
+
+    iou_df = pd.DataFrame(iou_scores_per_classes)
+    iou_df.columns = ["WT jaccard", "TC jaccard", "ET jaccard"]
+    val_metics_df = pd.concat([dice_df, iou_df], axis=1, sort=True)
+    val_metics_df = val_metics_df.loc[
+        :,
+        ["WT dice", "WT jaccard", "TC dice", "TC jaccard", "ET dice", "ET jaccard"],
+    ]
+    val_metics_df.sample(5)
+    colors = ["#35FCFF", "#FF355A", "#96C503", "#C5035B", "#28B463", "#35FFAF"]
+    palette = sns.color_palette(colors, 6)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.barplot(
+        x=val_metics_df.mean().index,
+        y=val_metics_df.mean(),
+        palette=palette,
+        ax=ax,
+    )
+    ax.set_xticklabels(val_metics_df.columns, fontsize=14, rotation=15)
+    ax.set_title("Dice and Jaccard Coefficients from Validation", fontsize=20)
+
+    for idx, p in enumerate(ax.patches):
+        percentage = "{:.1f}%".format(100 * val_metics_df.mean().to_numpy()[idx])
+        x = p.get_x() + p.get_width() / 2 - 0.15
+        y = p.get_y() + p.get_height()
+        ax.annotate(percentage, (x, y), fontsize=15, fontweight="bold")
+
+    fig.savefig(
+        "result1.png",
+        format="png",
+        pad_inches=0.2,
+        transparent=False,
+        bbox_inches="tight",
+    )
+    fig.savefig(
+        "result1.svg",
+        format="svg",
+        pad_inches=0.2,
+        transparent=False,
+        bbox_inches="tight",
+    )
+
+    visualize_results(model, val_dataloader)
+
+
+def main(config: GlobalConfig | None = None, skip_training: bool = False) -> None:
     if config is None:
         config = GlobalConfig(pretrained_model_path=None)
     model = UNet3d(in_channels=4, n_classes=3, n_channels=24)
@@ -341,20 +347,24 @@ def main(config: GlobalConfig | None = None) -> None:
         path_to_csv=config.path_to_csv,
     )
     if config.pretrained_model_path is not None:
-        trainer.load_predtrain_model(config.pretrained_model_path)
+        trainer.load_pretrained_model(config.pretrained_model_path)
 
-        # if need - load the logs.
-        train_logs = pd.read_csv(config.train_logs_path)
-        trainer.losses["train"] = train_logs.loc[:, "train_loss"].to_list()
-        trainer.losses["val"] = train_logs.loc[:, "val_loss"].to_list()
-        trainer.dice_scores["train"] = train_logs.loc[:, "train_dice"].to_list()
-        trainer.dice_scores["val"] = train_logs.loc[:, "val_dice"].to_list()
-        trainer.jaccard_scores["train"] = train_logs.loc[:, "train_jaccard"].to_list()
-        trainer.jaccard_scores["val"] = train_logs.loc[:, "val_jaccard"].to_list()
+        if config.train_logs_path is not None:
+            train_logs = pd.read_csv(config.train_logs_path)
+            trainer.losses["train"] = train_logs.loc[:, "train_loss"].to_list()
+            trainer.losses["val"] = train_logs.loc[:, "val_loss"].to_list()
+            trainer.dice_scores["train"] = train_logs.loc[:, "train_dice"].to_list()
+            trainer.dice_scores["val"] = train_logs.loc[:, "val_dice"].to_list()
+            trainer.jaccard_scores["train"] = train_logs.loc[
+                :,
+                "train_jaccard",
+            ].to_list()
+            trainer.jaccard_scores["val"] = train_logs.loc[:, "val_jaccard"].to_list()
 
-    trainer.run()
+    if not skip_training:
+        trainer.run()
     visualize_post_training(model)
 
 
 if __name__ == "__main__":
-    main(config=default_config)
+    main(default_config)

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
+from tqdm import tqdm
 
 
 def dice_coef_metric(
@@ -221,7 +222,7 @@ def compute_scores_per_classes(model, dataloader, classes):
     iou_scores_per_classes = {key: [] for key in classes}
 
     with torch.no_grad():
-        for _i, data in enumerate(dataloader):
+        for data in tqdm(dataloader, desc="computing coefficients"):
             imgs, targets = data["image"], data["mask"]
             imgs, targets = imgs.to(device), targets.to(device)
             logits = model(imgs)

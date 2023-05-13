@@ -1,6 +1,7 @@
 albumentations
 h5py
 imageio
+matplotlib<3.4  # For projection kwarg
 nibabel
 nilearn
 pydicom

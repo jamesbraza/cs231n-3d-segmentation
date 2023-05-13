@@ -22,7 +22,7 @@ class GlobalConfig:
     test_root_dir: PathLike = BRATS_2020_VALIDATION_FOLDER
     path_to_csv: PathLike = BASELINE_FOLDER / "train_data.csv"
     pretrained_model_path: PathLike | None = LOGS_FOLDER / "unet/last_epoch_model.pth"
-    train_logs_path: PathLike = LOGS_FOLDER / "unet/train_log.csv"
+    train_logs_path: PathLike | None = LOGS_FOLDER / "unet/train_log.csv"
     ae_pretrained_model_path: PathLike | None = (
         LOGS_FOLDER / "ae/autoencoder_best_model.pth"
     )

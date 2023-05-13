@@ -1,6 +1,6 @@
 import os
 
-import imageio
+import imageio.v2 as imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -123,7 +123,7 @@ class Image3dToGIF3d:
 
             if make_gif:
                 images = []
-                for angle in tqdm(range(0, 360, 5)):
+                for angle in tqdm(range(0, 360, 5), desc="generating angles"):
                     ax.view_init(30, angle)
                     fname = str(angle) + ".png"
 

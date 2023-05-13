@@ -204,3 +204,37 @@ def jaccard_coef_metric_per_classes(
                 scores[classes[class_]].append((intersection + eps) / union)
 
     return scores
+
+
+def compute_scores_per_classes(model, dataloader, classes):
+    """
+    Compute Dice and Jaccard coefficients for each class.
+
+    Params:
+        model: neural net for make predictions.
+        dataloader: dataset object to load data from.
+        classes: list with classes.
+        Returns: dictionaries with dice and jaccard coefficients for each class for each slice.
+    """
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dice_scores_per_classes = {key: [] for key in classes}
+    iou_scores_per_classes = {key: [] for key in classes}
+
+    with torch.no_grad():
+        for _i, data in enumerate(dataloader):
+            imgs, targets = data["image"], data["mask"]
+            imgs, targets = imgs.to(device), targets.to(device)
+            logits = model(imgs)
+            logits = logits.detach().cpu().numpy()
+            targets = targets.detach().cpu().numpy()
+
+            dice_scores = dice_coef_metric_per_classes(logits, targets)
+            iou_scores = jaccard_coef_metric_per_classes(logits, targets)
+
+            for key in dice_scores:
+                dice_scores_per_classes[key].extend(dice_scores[key])
+
+            for key in iou_scores:
+                iou_scores_per_classes[key].extend(iou_scores[key])
+
+    return dice_scores_per_classes, iou_scores_per_classes

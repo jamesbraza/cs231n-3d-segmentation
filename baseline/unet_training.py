@@ -176,9 +176,10 @@ class Trainer:
             plt.tight_layout()
             plt.show()
 
-    def load_predtrain_model(self, state_path: str):
-        self.net.load_state_dict(torch.load(state_path))
-        print("Predtrain model loaded")
+    def load_pretrained_model(self, state_path: str):
+        map_location = None if torch.cuda.is_available() else torch.device("cpu")
+        self.net.load_state_dict(torch.load(state_path, map_location=map_location))
+        print("Pretrained model loaded")
 
     def _save_train_history(self):
         """Write model weights and training logs to files."""
@@ -323,7 +324,7 @@ def visualize_post_training(model: UNet3d) -> None:
         break
 
 
-def main(config: GlobalConfig | None = None) -> None:
+def main(config: GlobalConfig | None = None, skip_training: bool = False) -> None:
     if config is None:
         config = GlobalConfig(pretrained_model_path=None)
     model = UNet3d(in_channels=4, n_classes=3, n_channels=24)
@@ -341,20 +342,24 @@ def main(config: GlobalConfig | None = None) -> None:
         path_to_csv=config.path_to_csv,
     )
     if config.pretrained_model_path is not None:
-        trainer.load_predtrain_model(config.pretrained_model_path)
+        trainer.load_pretrained_model(config.pretrained_model_path)
 
-        # if need - load the logs.
-        train_logs = pd.read_csv(config.train_logs_path)
-        trainer.losses["train"] = train_logs.loc[:, "train_loss"].to_list()
-        trainer.losses["val"] = train_logs.loc[:, "val_loss"].to_list()
-        trainer.dice_scores["train"] = train_logs.loc[:, "train_dice"].to_list()
-        trainer.dice_scores["val"] = train_logs.loc[:, "val_dice"].to_list()
-        trainer.jaccard_scores["train"] = train_logs.loc[:, "train_jaccard"].to_list()
-        trainer.jaccard_scores["val"] = train_logs.loc[:, "val_jaccard"].to_list()
+        if config.train_logs_path is not None:
+            train_logs = pd.read_csv(config.train_logs_path)
+            trainer.losses["train"] = train_logs.loc[:, "train_loss"].to_list()
+            trainer.losses["val"] = train_logs.loc[:, "val_loss"].to_list()
+            trainer.dice_scores["train"] = train_logs.loc[:, "train_dice"].to_list()
+            trainer.dice_scores["val"] = train_logs.loc[:, "val_dice"].to_list()
+            trainer.jaccard_scores["train"] = train_logs.loc[
+                :,
+                "train_jaccard",
+            ].to_list()
+            trainer.jaccard_scores["val"] = train_logs.loc[:, "val_jaccard"].to_list()
 
-    trainer.run()
+    if not skip_training:
+        trainer.run()
     visualize_post_training(model)
 
 
 if __name__ == "__main__":
-    main(config=default_config)
+    main(default_config)

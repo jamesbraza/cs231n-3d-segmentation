@@ -121,10 +121,12 @@ ignore = [
     "FBT001",  # FBT001, FBT002: overly pedantic
     "FBT002",
     "G004",  # f-strings are convenient
-    "N806",  # Nice for project
-    "N816",  # Nice for project
+    "N806",  # N806, N812, N816: loosen naming for project
+    "N812",
+    "N816",
     "PL",  # Duplicates pylint
     "PTH",  # Overly pedantic
+    "S101",  # Nice for project
     "SLF001",  # Overly pedantic
     "T201",  # Nice for project
     "TCH001",  # TCH001, TCH002, TCH003: don't care to enforce type checking blocks

@@ -142,7 +142,7 @@ def compute_results(model, dataloader, threshold=0.33) -> dict[str, list]:
     results = {"Id": [], "image": [], "GT": [], "Prediction": []}
 
     with torch.no_grad():
-        for i, data in enumerate(dataloader):
+        for i, data in enumerate(tqdm(dataloader, desc="computing results")):
             id_, imgs, targets = data["Id"], data["image"], data["mask"]
             imgs, targets = imgs.to(device), targets.to(device)
             logits = model(imgs)

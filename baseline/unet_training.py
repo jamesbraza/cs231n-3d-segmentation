@@ -266,19 +266,11 @@ def visualize_results(model, dataloader: DataLoader) -> None:
         break
 
 
-def visualize_post_training(model: UNet3d) -> None:
-    val_dataloader = get_dataloader(
-        BratsDataset,
-        "train_data.csv",
-        phase="valid",
-        fold=0,
-    )
-    print(len(val_dataloader))
-
+def visualize_metrics(model: UNet3d, dataloader: DataLoader) -> None:
     model.eval()
     dice_scores_per_classes, iou_scores_per_classes = compute_scores_per_classes(
         model,
-        val_dataloader,
+        dataloader,
         ["WT", "TC", "ET"],
     )
     dice_df = pd.DataFrame(dice_scores_per_classes)
@@ -326,6 +318,17 @@ def visualize_post_training(model: UNet3d) -> None:
         bbox_inches="tight",
     )
 
+
+def visualize_post_training(model: UNet3d) -> None:
+    val_dataloader = get_dataloader(
+        BratsDataset,
+        "train_data.csv",
+        phase="valid",
+        fold=0,
+    )
+    print(len(val_dataloader))
+
+    visualize_metrics(model, val_dataloader)
     visualize_results(model, val_dataloader)
 
 

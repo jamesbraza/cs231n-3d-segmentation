@@ -9,7 +9,9 @@ from IPython.display import Image, clear_output, display
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from tqdm import tqdm
 
+from baseline import BASELINE_FOLDER
 from baseline.config import GlobalConfig
 from baseline.config import config as default_config
 from baseline.model_utils import BCEDiceLoss, Meter, compute_scores_per_classes
@@ -197,6 +199,28 @@ class Trainer:
         )
 
 
+def quantify_inference_time(
+    model,
+    dataloader: DataLoader,
+    save_path: str = BASELINE_FOLDER / "inference_histogram",
+) -> None:
+    model.eval()
+    with torch.no_grad():
+        dts: list[float] = []
+        for data in tqdm(dataloader, desc="inferences"):
+            tic = time.perf_counter()
+            probs = torch.sigmoid(model(data["image"]))  # noqa: F841
+            toc = time.perf_counter()
+            dts.append(toc - tic)
+
+    print(f"All delta times: {dts}.")
+    counts, bins = np.histogram(np.array(dts), bins="auto")
+    plt.hist(bins[:-1], bins, weights=counts, rwidth=0.9)
+    plt.xlabel("Inference Time (sec)")
+    plt.ylabel("Count")
+    plt.savefig(f"{save_path}.png", format="png", bbox_inches="tight")
+
+
 def visualize_results(model, dataloader: DataLoader, save_gif: bool = True) -> None:
     model.eval()
     results = compute_results(model, dataloader, 0.33)
@@ -323,12 +347,13 @@ def visualize_metrics(model: UNet3d, dataloader: DataLoader) -> None:
 def visualize_post_training(model: UNet3d) -> None:
     val_dataloader = get_dataloader(
         BratsDataset,
-        "train_data.csv",
+        BASELINE_FOLDER / "train_data.csv",
         phase="valid",
         fold=0,
     )
     print(len(val_dataloader))
 
+    quantify_inference_time(model, val_dataloader)
     visualize_metrics(model, val_dataloader)
     visualize_results(model, val_dataloader)
 

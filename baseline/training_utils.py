@@ -119,7 +119,7 @@ class Image3dToGIF3d:
             ax.set_zlim(top=self.img_dim[2] * 2)
             ax.set_title(title, fontsize=18, y=1.05)
 
-            ax.voxels(x, y, z, filled, facecolors=facecolors, shade=False)
+            ax.voxels(x, y, z, filled=filled, facecolors=facecolors, shade=False)
 
             if make_gif:
                 images = []
@@ -162,7 +162,7 @@ def compute_results(model, dataloader, threshold=0.33) -> dict[str, list]:
 
             # only 5 pars
             if i > 5:
-                return results
+                break
         return results
 
 

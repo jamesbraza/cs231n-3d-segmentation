@@ -119,23 +119,16 @@ class Image3dToGIF3d:
             ax.set_zlim(top=self.img_dim[2] * 2)
             ax.set_title(title, fontsize=18, y=1.05)
 
-            ax.voxels(x, y, z, filled, facecolors=facecolors, shade=False)
+            ax.voxels(x, y, z, filled=filled, facecolors=facecolors, shade=False)
 
             if make_gif:
                 images = []
                 for angle in tqdm(range(0, 360, 5), desc="generating angles"):
                     ax.view_init(30, angle)
-                    fname = str(angle) + ".png"
-
-                    plt.savefig(
-                        f"{path_to_save}.gif",
-                        dpi=120,
-                        format="png",
-                        bbox_inches="tight",
-                    )
-                    images.append(imageio.imread(fname))
-                    # os.remove(fname)
-                imageio.mimsave(path_to_save, images)
+                    fig.canvas.draw()
+                    image_flat = np.frombuffer(fig.canvas.tostring_rgb(), dtype="uint8")
+                    images.append(image_flat.reshape(*fig.canvas.get_width_height(), 3))
+                imageio.mimsave(f"{path_to_save}.gif", images)
                 plt.close()
 
             else:
@@ -169,7 +162,7 @@ def compute_results(model, dataloader, threshold=0.33) -> dict[str, list]:
 
             # only 5 pars
             if i > 5:
-                return results
+                break
         return results
 
 

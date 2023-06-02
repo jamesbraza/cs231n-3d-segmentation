@@ -286,7 +286,7 @@ def visualize_results(model, dataloader: DataLoader, save_gif: bool = True) -> N
         )
 
         if save_gif:
-            merging_two_gif(filename1, filename2, "result.gif")
+            merging_two_gif(f"{filename1}.gif", f"{filename2}.gif", "result.gif")
             display(Image("result.gif", format="png"))
         break
 

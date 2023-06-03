@@ -19,3 +19,10 @@ nibabel
 git+https://github.com/wolny/pytorch-3dunet.git@1.5.1
 tensorboard
 torch
+
+# developer tooling
+ipython  # For PyCharm debugging
+mypy
+pip-tools
+pre-commit
+pylint[spelling]

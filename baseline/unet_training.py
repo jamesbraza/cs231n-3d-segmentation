@@ -9,6 +9,7 @@ from IPython.display import Image, clear_output, display
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from baseline import BASELINE_FOLDER
@@ -21,7 +22,7 @@ from baseline.training_utils import (
     compute_results,
     merging_two_gif,
 )
-from baseline.unet_data import BratsDataset, DataLoader, get_dataloader
+from baseline.unet_data import BratsDataset, get_dataloader
 from baseline.unet_model import UNet3d
 
 

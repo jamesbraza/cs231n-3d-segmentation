@@ -1,10 +1,10 @@
 import os
+from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import pandas as pd
-import torch
 from albumentations import Compose
 from skimage.transform import resize
 from skimage.util import montage
@@ -108,7 +108,7 @@ class BratsDataset(Dataset):
 
 
 def get_dataloader(
-    dataset: torch.utils.data.Dataset,
+    dataset: Callable[[pd.DataFrame, str], Dataset],
     path_to_csv: str,
     phase: str,
     fold: int = 0,

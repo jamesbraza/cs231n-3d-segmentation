@@ -1,13 +1,16 @@
 import time
+from collections.abc import Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 from IPython.display import Image, display
 from skimage.util import montage
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import Dataset
 
 from baseline.autoencoder_data import AutoEncoderDataset
 from baseline.autoencoder_model import AutoEncoder
@@ -31,7 +34,7 @@ class Trainer:
         fold: int,
         num_epochs: int,
         path_to_csv: str,
-        dataset: torch.utils.data.Dataset,
+        dataset: Callable[[pd.DataFrame, str], Dataset],
     ):
         """Initialization."""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"

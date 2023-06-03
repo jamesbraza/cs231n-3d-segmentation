@@ -1,0 +1,28 @@
+# baseline
+albumentations
+h5py
+imageio
+matplotlib<3.4  # For projection kwarg
+nibabel
+nilearn
+numpy
+pydicom
+scikit-image
+scikit-learn
+seaborn
+
+# data
+kaggle  # Downloading datasets
+nibabel
+
+# unet_zoo
+git+https://github.com/wolny/pytorch-3dunet.git@1.5.1
+tensorboard
+torch
+
+# developer tooling
+ipython  # For PyCharm debugging
+mypy
+pip-tools
+pre-commit
+pylint[spelling]

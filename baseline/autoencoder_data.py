@@ -1,9 +1,9 @@
 import os
+from collections.abc import Callable
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
-import torch
 from albumentations import Compose
 from torch.utils.data import DataLoader, Dataset
 
@@ -15,7 +15,7 @@ def get_augmentations(phase):
 
 
 def get_dataloader(
-    dataset: torch.utils.data.Dataset,
+    dataset: Callable[[pd.DataFrame, str], Dataset],
     path_to_csv: str,
     phase: str,
     fold: int = 0,

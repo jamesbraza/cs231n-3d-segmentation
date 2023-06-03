@@ -119,7 +119,7 @@ class Image3dToGIF3d:
             ax.set_zlim(top=self.img_dim[2] * 2)
             ax.set_title(title, fontsize=18, y=1.05)
 
-            ax.voxels(x, y, z, filled=filled, facecolors=facecolors, shade=False)
+            ax.voxels(x, y, z, filled, facecolors=facecolors, shade=False)
 
             if make_gif:
                 images = []
@@ -127,7 +127,9 @@ class Image3dToGIF3d:
                     ax.view_init(30, angle)
                     fig.canvas.draw()
                     image_flat = np.frombuffer(fig.canvas.tostring_rgb(), dtype="uint8")
-                    images.append(image_flat.reshape(*fig.canvas.get_width_height(), 3))
+                    images.append(
+                        image_flat.reshape(*reversed(fig.canvas.get_width_height()), 3),
+                    )
                 imageio.mimsave(f"{path_to_save}.gif", images)
                 plt.close()
 
@@ -262,8 +264,12 @@ def merging_two_gif(path1: str, path2: str, name_to_save: str):
     new_gif = imageio.get_writer(name_to_save)
 
     for _frame_number in range(number_of_frames):
-        img1 = gif1.get_next_data()
-        img2 = gif2.get_next_data()
+        try:
+            img1 = gif1.get_next_data()
+            img2 = gif2.get_next_data()
+        except EOFError:  # When get_length check doesn't work, fall back here
+            break
+
         # here is the magic
         new_image = np.hstack((img1, img2))
         new_gif.append_data(new_image)

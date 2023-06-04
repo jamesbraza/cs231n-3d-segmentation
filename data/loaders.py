@@ -58,28 +58,43 @@ class BraTS2020Dataset(Dataset):
         mapping_csv_name: str,
         device: torch.device | None = None,
         train: bool = True,
+        skip_slices: int = 0,
     ):
-        self._data_folder_path = data_folder_path
+        """
+        Initialize.
+
+        Args:
+            data_folder_path: Path to the BraTS 2020 dataset.
+            mapping_csv_name: Name of the name mapping CSV file.
+            device: Optional torch device to use, default is None (CPU).
+            train: Set True (default) for training data (images and mask), set
+                False for test data (only images).
+            skip_slices: Symmetric count of MRI slices to exclude, since the
+                first few and last few slices usually are empty or nearly-empty.
+        """
+        self.data_folder_path = data_folder_path
         self._names = pd.read_csv(
             os.path.join(data_folder_path, mapping_csv_name),
             usecols=[self.TARGET_COLUMN],
             dtype=str,
         )
-        self._device = device
+        self.device = device
         self.train = train
+        self.skip_slices = skip_slices
 
     def __len__(self) -> int:
-        return len(self._names)
+        return len(self._names) - 2 * self.skip_slices
 
     def get_full_path(self, index: int, extension: str) -> str:
         image_folder = os.path.join(
-            self._data_folder_path,
+            self.data_folder_path,
             self._names[self.TARGET_COLUMN][index],
         )
         return os.path.join(image_folder, os.path.basename(image_folder) + extension)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
         """Get (images, masks) if training, otherwise (images,)."""
+        index += self.skip_slices
         raw_imgs = (
             np.asarray(nib.load(path).dataobj)
             for path in (
@@ -93,7 +108,7 @@ class BraTS2020Dataset(Dataset):
             # N x W x H x C to N x C x H x W
             np.moveaxis(img, (0, 1, 2, 3), (0, 3, 2, 1)),
             dtype=torch.get_default_dtype(),  # Match pytorch-3dunet internals
-            device=self._device,
+            device=self.device,
         )
         if not self.train:
             return (image_tensor,)
@@ -107,7 +122,7 @@ class BraTS2020Dataset(Dataset):
             # N x W x H x C to N x C x H x W
             np.moveaxis(np.stack((wt, tc, et)), (0, 1, 2, 3), (0, 3, 2, 1)),
             dtype=torch.get_default_dtype(),  # Match pytorch-3dunet internals
-            device=self._device,
+            device=self.device,
         )
 
 

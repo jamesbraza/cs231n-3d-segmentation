@@ -7,11 +7,16 @@ from pytorch3dunet.unet3d.trainer import UNetTrainer
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 
-from data.loaders import TRAIN_DS_KWARGS, VAL_DS_KWARGS, BraTS2020Dataset
+from data.loaders import (
+    TRAIN_DS_KWARGS,
+    VAL_DS_KWARGS,
+    BraTS2020Classes,
+    BraTS2020Dataset,
+)
 from unet_zoo import ZOO_FOLDER
 
-NUM_SCANS_PER_EXAMPLE = 4
-NUM_CLASSES = 3
+NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
+NUM_CLASSES = len(BraTS2020Classes)
 INITIAL_CONV_OUT_CHANNELS = 24
 
 model = UNet3D(
@@ -34,7 +39,8 @@ trainer = UNetTrainer(
     loaders=data_loaders,
     checkpoint_dir=str(ZOO_FOLDER / "logs"),
     max_num_epochs=5,
-    max_num_iterations=1000,  # Max number of batches per epoch
+    max_num_iterations=1000,  # Defeat max number of batches per epoch
     tensorboard_formatter=DefaultTensorboardFormatter(),
+    skip_train_validation=True,
 )
 trainer.fit()

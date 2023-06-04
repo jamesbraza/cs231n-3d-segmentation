@@ -1,8 +1,10 @@
 import itertools
 import os
+from enum import IntEnum
 
 import nibabel as nib
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -10,10 +12,43 @@ from torch.utils.data import Dataset
 from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
 
 
+class BraTS2020Classes(IntEnum):
+    """Classes found in the BraTS 2020 dataset."""
+
+    NON_TUMOR = 0
+    NON_ENHANCING_TUMOR_CORE = 1  # Aka NCR/NET (neuroendocrine tumor)
+    # Swelling around the tumor
+    PERITUMORAL_EDEMA = 2  # Aka ED
+    # Gadolinium enhancing
+    GD_ENHANCING_TUMOR = 4  # Aka ET
+
+    @classmethod
+    def to_whole_tumor(cls, mask: npt.NDArray[int]) -> np.ndarray:
+        """Convert a mask to whole tumor (WT)."""
+        return mask >= cls.NON_TUMOR.value
+
+    @classmethod
+    def to_tumor_core(cls, mask: npt.NDArray[int]) -> np.ndarray:
+        """Convert a mask to tumor core (TC)."""
+        return np.logical_or(
+            mask == cls.NON_ENHANCING_TUMOR_CORE.value,
+            mask == cls.GD_ENHANCING_TUMOR.value,
+        )
+
+    @classmethod
+    def to_enhancing_tumor(cls, mask: npt.NDArray[int]) -> np.ndarray:
+        """Convert a mask to enhancing tumor (ET)."""
+        return mask == cls.GD_ENHANCING_TUMOR.value
+
+
 class BraTS2020Dataset(Dataset):
     """Map-style dataset for BraTS 2020."""
 
     TARGET_COLUMN = "BraTS_2020_subject_ID"
+    # flair = T2-weighted Fluid Attenuated Inversion Recovery (T2-FLAIR)
+    # t1 = native T1-weighted (T1)
+    # t1ce = post-contrast T1-weighted (T1Gd)
+    # t2 = T2-weighted (T2)
     NONMASK_EXTENSIONS = ["_flair.nii", "_t1.nii", "_t1ce.nii", "_t2.nii"]
     MASK_EXTENSION = "_seg.nii"
 
@@ -43,8 +78,6 @@ class BraTS2020Dataset(Dataset):
         )
         return os.path.join(image_folder, os.path.basename(image_folder) + extension)
 
-    WT, TC, ET = 1, 2, 4
-
     def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
         """Get (images, masks) if training, otherwise (images,)."""
         raw_imgs = (
@@ -67,9 +100,9 @@ class BraTS2020Dataset(Dataset):
         mask = np.asarray(
             nib.load(self.get_full_path(index, self.MASK_EXTENSION)).dataobj,
         )
-        wt = mask >= self.WT
-        tc = np.logical_and(mask != self.TC, mask >= self.WT)
-        et = mask >= self.ET
+        wt = BraTS2020Classes.to_whole_tumor(mask)
+        tc = BraTS2020Classes.to_tumor_core(mask)
+        et = BraTS2020Classes.to_enhancing_tumor(mask)
         return image_tensor, torch.as_tensor(
             # N x W x H x C to N x C x H x W
             np.moveaxis(np.stack((wt, tc, et)), (0, 1, 2, 3), (0, 3, 2, 1)),

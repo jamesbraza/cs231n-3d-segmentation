@@ -132,7 +132,7 @@ class BraTS2020Dataset(Dataset):
                 path=self.get_full_path(index, self.MASK_EXTENSION),
             )
         except FileNotFoundError:
-            # Exceptional case for BraTS20_Training_355
+            # Exceptional case for training data's BraTS20_Training_355
             image_folder = self.get_image_folder(index)
             files = [
                 i

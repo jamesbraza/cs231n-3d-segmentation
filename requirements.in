@@ -2,7 +2,7 @@
 albumentations
 h5py
 imageio
-matplotlib<3.4  # For projection kwarg
+matplotlib
 nibabel
 nilearn
 numpy

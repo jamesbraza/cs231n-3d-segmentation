@@ -26,3 +26,4 @@ mypy
 pip-tools
 pre-commit
 pylint[spelling]
+torchsummary

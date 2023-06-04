@@ -61,10 +61,11 @@ data_loaders: dict[Literal["train", "val"], DataLoader] = {
 }
 defeat_max_num_iters = max(len(data_loaders[split]) for split in data_loaders) + 1
 
+optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 trainer = UNetTrainer(
     model,
-    optimizer=torch.optim.Adam(model.parameters(), lr=5e-4),
-    lr_scheduler=None,
+    optimizer=optimizer,
+    lr_scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
     loss_criterion=BCEDiceLoss(alpha=1.0, beta=1.0),
     eval_criterion=MeanIoU(),
     loaders=data_loaders,

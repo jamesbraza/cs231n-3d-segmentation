@@ -1,4 +1,5 @@
 import os
+import re
 from enum import IntEnum
 
 import nibabel as nib
@@ -88,11 +89,14 @@ class BraTS2020Dataset(Dataset):
     def __len__(self) -> int:
         return len(self._names)
 
-    def get_full_path(self, index: int, extension: str) -> str:
-        image_folder = os.path.join(
+    def get_image_folder(self, index: int) -> str:
+        return os.path.join(
             self.data_folder_path,
             self._names[self.TARGET_COLUMN][index],
         )
+
+    def get_full_path(self, index: int, extension: str) -> str:
+        image_folder = self.get_image_folder(index)
         return os.path.join(image_folder, os.path.basename(image_folder) + extension)
 
     def _load_nii_with_slicing(self, path: str) -> np.ndarray:
@@ -122,9 +126,23 @@ class BraTS2020Dataset(Dataset):
         )
         if not self.train:
             return (image_tensor,)
-        mask = self._load_nii_with_slicing(
-            path=self.get_full_path(index, self.MASK_EXTENSION),
-        )
+        try:
+            # Normal case
+            mask = self._load_nii_with_slicing(
+                path=self.get_full_path(index, self.MASK_EXTENSION),
+            )
+        except FileNotFoundError:
+            # Exceptional case for BraTS20_Training_355
+            image_folder = self.get_image_folder(index)
+            files = [
+                i
+                for i in os.listdir(image_folder)
+                if os.path.isfile(os.path.join(image_folder, i))
+            ]
+            seg_files = [re.match(".*seg.*.nii", f, re.IGNORECASE) for f in files]
+            mask = self._load_nii_with_slicing(
+                path=os.path.join(image_folder, next(filter(None, seg_files)).string),
+            )
         wt = BraTS2020Classes.to_whole_tumor(mask)
         tc = BraTS2020Classes.to_tumor_core(mask)
         et = BraTS2020Classes.to_enhancing_tumor(mask)

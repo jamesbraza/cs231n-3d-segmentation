@@ -73,6 +73,35 @@ kaggle datasets download -p data/brats2020-training-validation-data \
     --unzip awsaf49/brats20-dataset-training-validation
 ```
 
+### TensorBoard
+
+#### Local Training
+
+Here is how you kick off TensorBoard:
+
+```shell
+tensorboard --logdir <path> --port 6006
+```
+
+Afterwards, go to the URL: http://localhost:6006/.
+
+#### Remote Training
+
+If training on a remote machine, on the remote machine:
+
+```shell
+tensorboard --logdir <path> --port 6006
+```
+
+Then on the local machine:
+
+```shell
+export SEG01=111.222.333.444
+ssh -N -f -L localhost:16006:localhost:6006 ubuntu@$SEG01
+```
+
+Afterwards, go to the URL: http://localhost:16006/.
+
 [1]: http://cs231n.stanford.edu/
 [3]: https://www.med.upenn.edu/cbica/brats/
 [4]: https://github.com/Kaggle/kaggle-api

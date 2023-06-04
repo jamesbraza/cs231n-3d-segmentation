@@ -1,4 +1,5 @@
 import os
+import re
 from enum import IntEnum
 
 import nibabel as nib
@@ -6,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 
 from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
 
@@ -88,11 +89,14 @@ class BraTS2020Dataset(Dataset):
     def __len__(self) -> int:
         return len(self._names)
 
-    def get_full_path(self, index: int, extension: str) -> str:
-        image_folder = os.path.join(
+    def get_image_folder(self, index: int) -> str:
+        return os.path.join(
             self.data_folder_path,
             self._names[self.TARGET_COLUMN][index],
         )
+
+    def get_full_path(self, index: int, extension: str) -> str:
+        image_folder = self.get_image_folder(index)
         return os.path.join(image_folder, os.path.basename(image_folder) + extension)
 
     def _load_nii_with_slicing(self, path: str) -> np.ndarray:
@@ -122,9 +126,23 @@ class BraTS2020Dataset(Dataset):
         )
         if not self.train:
             return (image_tensor,)
-        mask = self._load_nii_with_slicing(
-            path=self.get_full_path(index, self.MASK_EXTENSION),
-        )
+        try:
+            # Normal case
+            mask = self._load_nii_with_slicing(
+                path=self.get_full_path(index, self.MASK_EXTENSION),
+            )
+        except FileNotFoundError:
+            # Exceptional case for training data's BraTS20_Training_355
+            image_folder = self.get_image_folder(index)
+            files = [
+                i
+                for i in os.listdir(image_folder)
+                if os.path.isfile(os.path.join(image_folder, i))
+            ]
+            seg_files = [re.match(".*seg.*.nii", f, re.IGNORECASE) for f in files]
+            mask = self._load_nii_with_slicing(
+                path=os.path.join(image_folder, next(filter(None, seg_files)).string),
+            )
         wt = BraTS2020Classes.to_whole_tumor(mask)
         tc = BraTS2020Classes.to_tumor_core(mask)
         et = BraTS2020Classes.to_enhancing_tumor(mask)
@@ -136,11 +154,28 @@ class BraTS2020Dataset(Dataset):
         )
 
 
-TRAIN_DS_KWARGS = {
+def split_train_val(
+    ds: Dataset,
+    batch_size: int,
+    fraction: float = 0.9,
+) -> tuple[Subset, Subset]:
+    """Split the input dataset into two based on a batch size and fraction."""
+    num_train = int(len(ds) / batch_size * fraction)
+    return tuple(
+        torch.utils.data.random_split(
+            dataset=ds,
+            lengths=(num_train, len(ds) - num_train),
+        ),
+    )
+
+
+# Has labels
+TRAIN_VAL_DS_KWARGS = {
     "data_folder_path": BRATS_2020_TRAINING_FOLDER,
     "mapping_csv_name": "name_mapping.csv",
 }
-VAL_DS_KWARGS = {
+# Has no labels
+TEST_DS_KWARGS = {
     "data_folder_path": BRATS_2020_VALIDATION_FOLDER,
     "mapping_csv_name": "name_mapping_validation_data.csv",
     "train": False,
@@ -148,11 +183,11 @@ VAL_DS_KWARGS = {
 
 
 def main() -> None:
-    train_ds = BraTS2020Dataset(**TRAIN_DS_KWARGS)
+    train_ds = BraTS2020Dataset(**TRAIN_VAL_DS_KWARGS)
     for images, targets in train_ds:  # noqa: B007
         _ = 0
-    val_ds = BraTS2020Dataset(**VAL_DS_KWARGS)
-    for images in val_ds:  # noqa: B007
+    test_ds = BraTS2020Dataset(**TEST_DS_KWARGS)
+    for images in test_ds:  # noqa: B007
         _ = 0
 
 

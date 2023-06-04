@@ -71,4 +71,4 @@ repos:
     rev: v2.2.4
     hooks:
       - id: codespell
-        exclude: requirements.txt
+        args: [--skip=requirements.txt]

@@ -14,10 +14,10 @@ from unet_zoo import ZOO_FOLDER
 
 NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
 MASK_COUNT = 3  # WT, TC, ET
-INITIAL_CONV_OUT_CHANNELS = 12
+INITIAL_CONV_OUT_CHANNELS = 18
 SKIP_SLICES = 5
 BATCH_SIZE = 1
-NUM_EPOCHS = 5
+NUM_EPOCHS = 10
 
 
 def infer_device() -> torch.device:
@@ -40,7 +40,7 @@ model = UNet3D(
     out_channels=MASK_COUNT,
     final_sigmoid=True,
     f_maps=INITIAL_CONV_OUT_CHANNELS,
-    num_groups=6,
+    num_groups=9,
 ).to(device=infer_device())
 # print_summary(model)
 

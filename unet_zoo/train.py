@@ -7,21 +7,16 @@ from pytorch3dunet.unet3d.trainer import UNetTrainer
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 
-from data.loaders import (
-    TRAIN_DS_KWARGS,
-    VAL_DS_KWARGS,
-    BraTS2020Classes,
-    BraTS2020Dataset,
-)
+from data.loaders import TRAIN_DS_KWARGS, VAL_DS_KWARGS, BraTS2020Dataset
 from unet_zoo import ZOO_FOLDER
 
 NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
-NUM_CLASSES = len(BraTS2020Classes)
+MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 24
 
 model = UNet3D(
     in_channels=NUM_SCANS_PER_EXAMPLE,
-    out_channels=NUM_CLASSES,
+    out_channels=MASK_COUNT,
     final_sigmoid=True,
     f_maps=INITIAL_CONV_OUT_CHANNELS,
     num_groups=6,

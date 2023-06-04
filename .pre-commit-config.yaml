@@ -71,4 +71,6 @@ repos:
     rev: v2.2.4
     hooks:
       - id: codespell
-        args: [--skip=requirements.txt]
+        args:
+          - --skip
+          - requirements.in,requirements.txt

@@ -111,7 +111,7 @@ class Image3dToGIF3d:
 
         with plt.style.context("dark_background"):
             fig = plt.figure(figsize=self.figsize)
-            ax = fig.gca(projection="3d")
+            ax = fig.add_subplot(projection="3d")
 
             ax.view_init(30, init_angle)
             ax.set_xlim(right=self.img_dim[0] * 2)

@@ -17,7 +17,6 @@ MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 12
 SKIP_SLICES = 5
 BATCH_SIZE = 1
-TRAIN_VAL_SPLIT = 0.9  # * 100% training
 
 
 def infer_device() -> torch.device:
@@ -49,11 +48,7 @@ train_val_ds = BraTS2020Dataset(
     skip_slices=SKIP_SLICES,
     **TRAIN_VAL_DS_KWARGS,
 )
-train_ds, val_ds = split_train_val(
-    train_val_ds,
-    batch_size=BATCH_SIZE,
-    fraction=TRAIN_VAL_SPLIT,
-)
+train_ds, val_ds = split_train_val(train_val_ds, batch_size=BATCH_SIZE)
 
 data_loaders: dict[Literal["train", "val"], DataLoader] = {
     "train": DataLoader(train_ds, batch_size=BATCH_SIZE),

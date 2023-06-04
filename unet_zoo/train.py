@@ -14,6 +14,13 @@ NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
 MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 24
 
+
+def infer_device() -> torch.device:
+    if torch.cuda.is_available():
+        return torch.device("cuda")  # Current CUDA device
+    return torch.device("cpu")
+
+
 model = UNet3D(
     in_channels=NUM_SCANS_PER_EXAMPLE,
     out_channels=MASK_COUNT,
@@ -22,8 +29,12 @@ model = UNet3D(
     num_groups=6,
 )
 data_loaders: dict[Literal["train", "val"], DataLoader] = {
-    "train": DataLoader(BraTS2020Dataset(skip_slices=5, **TRAIN_DS_KWARGS)),
-    "val": DataLoader(BraTS2020Dataset(skip_slices=5, **VAL_DS_KWARGS)),
+    "train": DataLoader(
+        BraTS2020Dataset(device=infer_device(), skip_slices=5, **TRAIN_DS_KWARGS),
+    ),
+    "val": DataLoader(
+        BraTS2020Dataset(device=infer_device(), skip_slices=5, **VAL_DS_KWARGS),
+    ),
 }
 trainer = UNetTrainer(
     model,

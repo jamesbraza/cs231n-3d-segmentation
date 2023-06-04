@@ -26,4 +26,4 @@ mypy
 pip-tools
 pre-commit
 pylint[spelling]
-torchsummary
+torchinfo  # Printing model summary

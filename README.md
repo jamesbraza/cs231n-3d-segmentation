@@ -46,8 +46,7 @@ sudo apt update && sudo apt upgrade -y
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt install -y python3.11 python3.11-dev python3.11-venv
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 2
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 3
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 2
 python3 --version  # 3.11.3
 ```
 

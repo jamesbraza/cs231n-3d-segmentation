@@ -54,8 +54,7 @@ git clone https://github.com/jamesbraza/cs231n-3d-segmentation.git
 cd cs231n-3d-segmentation
 python3 -m venv venv
 source venv/bin/activate
-python -m pip install --progress-bar off -r requirements.txt \
-    -r baseline/requirements.txt -r requirements-qa.txt
+python -m pip install --progress-bar off -r requirements.txt
 ```
 
 [1]: http://cs231n.stanford.edu/

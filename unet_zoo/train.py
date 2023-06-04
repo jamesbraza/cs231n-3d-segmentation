@@ -67,7 +67,7 @@ trainer = UNetTrainer(
     loss_criterion=BCEDiceLoss(alpha=1.0, beta=1.0),
     eval_criterion=MeanIoU(),
     loaders=data_loaders,
-    checkpoint_dir=str(ZOO_FOLDER / "logs"),
+    checkpoint_dir=str(ZOO_FOLDER),
     max_num_epochs=5,
     max_num_iterations=defeat_max_num_iters,
     tensorboard_formatter=DefaultTensorboardFormatter(),

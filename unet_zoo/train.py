@@ -17,6 +17,7 @@ MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 12
 SKIP_SLICES = 5
 BATCH_SIZE = 1
+NUM_EPOCHS = 5
 
 
 def infer_device() -> torch.device:
@@ -54,7 +55,9 @@ data_loaders: dict[Literal["train", "val"], DataLoader] = {
     "train": DataLoader(train_ds, batch_size=BATCH_SIZE),
     "val": DataLoader(val_ds, batch_size=BATCH_SIZE),
 }
-defeat_max_num_iters = max(len(data_loaders[split]) for split in data_loaders) + 1
+defeat_max_num_iters = (
+    NUM_EPOCHS * max(len(data_loaders[split]) for split in data_loaders) + 1
+)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 trainer = UNetTrainer(
@@ -65,7 +68,7 @@ trainer = UNetTrainer(
     eval_criterion=MeanIoU(),
     loaders=data_loaders,
     checkpoint_dir=str(ZOO_FOLDER),
-    max_num_epochs=5,
+    max_num_epochs=NUM_EPOCHS,
     max_num_iterations=defeat_max_num_iters,
     tensorboard_formatter=DefaultTensorboardFormatter(),
 )

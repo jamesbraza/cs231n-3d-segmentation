@@ -13,7 +13,11 @@ from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
 
 
 class BraTS2020Classes(IntEnum):
-    """Classes found in the BraTS 2020 dataset."""
+    """
+    Classes found in the BraTS 2020 dataset.
+
+    SEE: https://www.med.upenn.edu/cbica/brats2020/data.html
+    """
 
     NON_TUMOR = 0
     NON_ENHANCING_TUMOR_CORE = 1  # Aka NCR/NET (neuroendocrine tumor)

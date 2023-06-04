@@ -54,7 +54,7 @@ git clone https://github.com/jamesbraza/cs231n-3d-segmentation.git
 cd cs231n-3d-segmentation
 python3 -m venv venv
 source venv/bin/activate
-python -m pip install --progress-bar off -r requirements.txt
+python -m pip install --no-cache-dir --progress-bar off -r requirements.txt
 ```
 
 Step 4: download BraTS 2020 dataset using the Kaggle API.

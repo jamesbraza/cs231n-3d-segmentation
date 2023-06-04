@@ -54,11 +54,12 @@ class BraTS2020Dataset(Dataset):
                 for extension in self.NONMASK_EXTENSIONS
             )
         )
-        # Normalize to be in 0, 1
+        # Normalize to be in [0, 1]
         img = np.stack((img - img.min()) / (img.max() - img.min()) for img in raw_imgs)
         image_tensor = torch.as_tensor(
             # N x W x H x C to N x C x H x W
             np.moveaxis(img, (0, 1, 2, 3), (0, 3, 2, 1)),
+            dtype=torch.get_default_dtype(),  # Match pytorch-3dunet internals
             device=self._device,
         )
         if not self.train:
@@ -72,6 +73,7 @@ class BraTS2020Dataset(Dataset):
         return image_tensor, torch.as_tensor(
             # N x W x H x C to N x C x H x W
             np.moveaxis(np.stack((wt, tc, et)), (0, 1, 2, 3), (0, 3, 2, 1)),
+            dtype=torch.get_default_dtype(),  # Match pytorch-3dunet internals
             device=self._device,
         )
 

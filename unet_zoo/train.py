@@ -22,8 +22,8 @@ model = UNet3D(
     num_groups=6,
 )
 data_loaders: dict[Literal["train", "val"], DataLoader] = {
-    "train": DataLoader(BraTS2020Dataset(**TRAIN_DS_KWARGS)),
-    "val": DataLoader(BraTS2020Dataset(**VAL_DS_KWARGS)),
+    "train": DataLoader(BraTS2020Dataset(skip_slices=5, **TRAIN_DS_KWARGS)),
+    "val": DataLoader(BraTS2020Dataset(skip_slices=5, **VAL_DS_KWARGS)),
 }
 trainer = UNetTrainer(
     model,

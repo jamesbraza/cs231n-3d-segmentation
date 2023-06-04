@@ -96,11 +96,18 @@ class BraTS2020Dataset(Dataset):
         )
         return os.path.join(image_folder, os.path.basename(image_folder) + extension)
 
+    def _load_nii_with_slicing(self, path: str) -> np.ndarray:
+        """Load in a .nii file taking into account the skip slices."""
+        if self.skip_slices <= 0:
+            raw_img = nib.load(path).dataobj
+        else:
+            raw_img = nib.load(path).dataobj[:, :, self.skip_slices : -self.skip_slices]
+        return np.asarray(raw_img)
+
     def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
         """Get (images, masks) if training, otherwise (images,)."""
-        index += self.skip_slices
         raw_imgs = (
-            np.asarray(nib.load(path).dataobj)
+            self._load_nii_with_slicing(path)
             for path in (
                 self.get_full_path(index, extension)
                 for extension in self.NONMASK_EXTENSIONS
@@ -116,8 +123,8 @@ class BraTS2020Dataset(Dataset):
         )
         if not self.train:
             return (image_tensor,)
-        mask = np.asarray(
-            nib.load(self.get_full_path(index, self.MASK_EXTENSION)).dataobj,
+        mask = self._load_nii_with_slicing(
+            path=self.get_full_path(index, self.MASK_EXTENSION),
         )
         wt = BraTS2020Classes.to_whole_tumor(mask)
         tc = BraTS2020Classes.to_tumor_core(mask)

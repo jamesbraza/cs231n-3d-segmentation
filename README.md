@@ -88,20 +88,30 @@ Afterwards, go to the URL: http://localhost:6006/.
 
 #### Remote Training
 
-If training on a remote machine, on the remote machine:
+If training on a remote machine, make sure you expose port 6006
+in the AWS security group:
+
+- IP version: IPv4
+- Type: Custom TCP
+- Protocol: TCP
+- Port range: 6006
+- Source: `0.0.0.0/0`
+- Description: TensorBoard
+
+First, start TensorBoard on the remote machine:
 
 ```shell
-tensorboard --logdir <path> --port 6006
+tensorboard --logdir <path>  --host 0.0.0.0 --port 6006
 ```
 
 Then on the local machine:
 
 ```shell
 export SEG01=111.222.333.444
-ssh -N -f -L localhost:16006:localhost:6006 ubuntu@$SEG01
+python -m webbrowser http://$SEG01:6006/
+# or
+open http://$SEG01:6006/
 ```
-
-Afterwards, go to the URL: http://localhost:16006/.
 
 [1]: http://cs231n.stanford.edu/
 [3]: https://www.med.upenn.edu/cbica/brats/

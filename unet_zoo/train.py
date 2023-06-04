@@ -14,9 +14,10 @@ from unet_zoo import ZOO_FOLDER
 
 NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
 MASK_COUNT = 3  # WT, TC, ET
-INITIAL_CONV_OUT_CHANNELS = 12
+INITIAL_CONV_OUT_CHANNELS = 18
 SKIP_SLICES = 5
 BATCH_SIZE = 1
+NUM_EPOCHS = 10
 
 
 def infer_device() -> torch.device:
@@ -39,7 +40,7 @@ model = UNet3D(
     out_channels=MASK_COUNT,
     final_sigmoid=True,
     f_maps=INITIAL_CONV_OUT_CHANNELS,
-    num_groups=6,
+    num_groups=9,
 ).to(device=infer_device())
 # print_summary(model)
 
@@ -54,7 +55,9 @@ data_loaders: dict[Literal["train", "val"], DataLoader] = {
     "train": DataLoader(train_ds, batch_size=BATCH_SIZE),
     "val": DataLoader(val_ds, batch_size=BATCH_SIZE),
 }
-defeat_max_num_iters = max(len(data_loaders[split]) for split in data_loaders) + 1
+defeat_max_num_iters = (
+    NUM_EPOCHS * max(len(data_loaders[split]) for split in data_loaders) + 1
+)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 trainer = UNetTrainer(
@@ -65,7 +68,7 @@ trainer = UNetTrainer(
     eval_criterion=MeanIoU(),
     loaders=data_loaders,
     checkpoint_dir=str(ZOO_FOLDER),
-    max_num_epochs=5,
+    max_num_epochs=NUM_EPOCHS,
     max_num_iterations=defeat_max_num_iters,
     tensorboard_formatter=DefaultTensorboardFormatter(),
 )

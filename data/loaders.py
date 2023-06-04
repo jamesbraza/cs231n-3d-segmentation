@@ -87,7 +87,7 @@ class BraTS2020Dataset(Dataset):
         self.skip_slices = skip_slices
 
     def __len__(self) -> int:
-        return len(self._names) - 2 * self.skip_slices
+        return len(self._names)
 
     def get_full_path(self, index: int, extension: str) -> str:
         image_folder = os.path.join(

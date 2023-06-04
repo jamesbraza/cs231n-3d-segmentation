@@ -1,4 +1,3 @@
-import itertools
 import os
 from enum import IntEnum
 
@@ -144,13 +143,16 @@ TRAIN_DS_KWARGS = {
 VAL_DS_KWARGS = {
     "data_folder_path": BRATS_2020_VALIDATION_FOLDER,
     "mapping_csv_name": "name_mapping_validation_data.csv",
+    "train": False,
 }
 
 
 def main() -> None:
     train_ds = BraTS2020Dataset(**TRAIN_DS_KWARGS)
+    for images, targets in train_ds:  # noqa: B007
+        _ = 0
     val_ds = BraTS2020Dataset(**VAL_DS_KWARGS)
-    for images, targets in itertools.chain(train_ds, val_ds):  # noqa: B007
+    for images in val_ds:  # noqa: B007
         _ = 0
 
 

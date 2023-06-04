@@ -26,6 +26,8 @@ Deep Learning AMI GPU PyTorch 2.0.0 (Ubuntu 20.04) 20230530 ([release notes][6])
 with instance type `g4dn.2xlarge`
 and 120 GiB of gp3 (general purpose SSD) storage.
 
+For your reference, the below commands take less than 20 minutes to run.
+
 Step 1: check GPU is present.
 
 ```shell

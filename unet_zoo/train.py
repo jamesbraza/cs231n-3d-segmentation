@@ -39,7 +39,7 @@ model = UNet3D(
     final_sigmoid=True,
     f_maps=INITIAL_CONV_OUT_CHANNELS,
     num_groups=6,
-)
+).to(device=infer_device())
 # print_summary(model)
 data_loaders: dict[Literal["train", "val"], DataLoader] = {
     "train": DataLoader(

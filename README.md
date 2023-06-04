@@ -38,16 +38,16 @@ sudo apt install -y ubuntu-drivers-common alsa-utils
 ubuntu-drivers devices  # Drivers: nvidia-driver-525, nvidia-driver-525-server
 ```
 
-Step 2: install and configure Python 3.10.
+Step 2: install and configure Python 3.11.
 
 ```shell
 python3 --version  # 3.8.10
 sudo apt update && sudo apt upgrade -y
 sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt install -y python3.10 python3.10-dev python3.10-venv
+sudo apt install -y python3.11 python3.11-dev python3.11-venv
 sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 2
-python3 --version  # 3.10.11
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 2
+python3 --version  # 3.11.3
 ```
 
 Step 3: `git clone` and install requirements into a `venv`.
@@ -87,20 +87,30 @@ Afterwards, go to the URL: http://localhost:6006/.
 
 #### Remote Training
 
-If training on a remote machine, on the remote machine:
+If training on a remote machine, make sure you expose port 6006
+in the AWS security group:
+
+- IP version: IPv4
+- Type: Custom TCP
+- Protocol: TCP
+- Port range: 6006
+- Source: `0.0.0.0/0`
+- Description: TensorBoard
+
+First, start TensorBoard on the remote machine:
 
 ```shell
-tensorboard --logdir <path> --port 6006
+tensorboard --logdir <path>  --host 0.0.0.0 --port 6006
 ```
 
 Then on the local machine:
 
 ```shell
 export SEG01=111.222.333.444
-ssh -N -f -L localhost:16006:localhost:6006 ubuntu@$SEG01
+python -m webbrowser http://$SEG01:6006/
+# or
+open http://$SEG01:6006/
 ```
-
-Afterwards, go to the URL: http://localhost:16006/.
 
 [1]: http://cs231n.stanford.edu/
 [3]: https://www.med.upenn.edu/cbica/brats/

@@ -23,7 +23,8 @@ AWS granted access to G and VT instances, and at the time,
 AWS's Deep Learning AMI supported G3, P3, P3dn, P4d, P4de, G5, G4dn instances.
 Thus, the AMI used was
 Deep Learning AMI GPU PyTorch 2.0.0 (Ubuntu 20.04) 20230530 ([release notes][6])
-with instance type `g4dn.2xlarge` and 60 GiB of gp3 storage.
+with instance type `g4dn.2xlarge`
+and 120 GiB of gp3 (general purpose SSD) storage.
 
 Step 1: check GPU is present.
 

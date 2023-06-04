@@ -9,7 +9,7 @@ from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020Dataset
+from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020Dataset, split_train_val
 from unet_zoo import ZOO_FOLDER
 
 NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
@@ -49,11 +49,12 @@ train_val_ds = BraTS2020Dataset(
     skip_slices=SKIP_SLICES,
     **TRAIN_VAL_DS_KWARGS,
 )
-num_train = int(len(train_val_ds) * TRAIN_VAL_SPLIT)
-train_ds, val_ds = torch.utils.data.random_split(
-    dataset=train_val_ds,
-    lengths=(num_train, len(train_val_ds) - num_train),
+train_ds, val_ds = split_train_val(
+    train_val_ds,
+    batch_size=BATCH_SIZE,
+    fraction=TRAIN_VAL_SPLIT,
 )
+
 data_loaders: dict[Literal["train", "val"], DataLoader] = {
     "train": DataLoader(train_ds, batch_size=BATCH_SIZE),
     "val": DataLoader(val_ds, batch_size=BATCH_SIZE),

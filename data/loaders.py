@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 
 from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
 
@@ -134,6 +134,21 @@ class BraTS2020Dataset(Dataset):
             dtype=torch.get_default_dtype(),  # Match pytorch-3dunet internals
             device=self.device,
         )
+
+
+def split_train_val(
+    ds: Dataset,
+    batch_size: int,
+    fraction: float = 0.9,
+) -> tuple[Subset, Subset]:
+    """Split the input dataset into two based on a batch size and fraction."""
+    num_train = int(len(ds) / batch_size * fraction)
+    return tuple(
+        torch.utils.data.random_split(
+            dataset=ds,
+            lengths=(num_train, len(ds) - num_train),
+        ),
+    )
 
 
 # Has labels

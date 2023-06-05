@@ -20,7 +20,9 @@ git+https://github.com/wolny/pytorch-3dunet.git@1.5.1
 tensorboard
 torch
 
-# developer tooling
+# development
+git+https://github.com/miykael/gif_your_nifti.git
+imageio<2.28  # TODO: remove after https://github.com/miykael/gif_your_nifti/pull/13
 ipython  # For PyCharm debugging
 mypy
 pip-tools

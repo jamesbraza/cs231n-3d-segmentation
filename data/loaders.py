@@ -29,7 +29,7 @@ class BraTS2020Classes(IntEnum):
     @classmethod
     def to_whole_tumor(cls, mask: npt.NDArray[int]) -> np.ndarray:
         """Convert a mask to whole tumor (WT)."""
-        return mask >= cls.NON_TUMOR.value
+        return mask > cls.NON_TUMOR.value
 
     @classmethod
     def to_tumor_core(cls, mask: npt.NDArray[int]) -> np.ndarray:

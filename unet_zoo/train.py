@@ -3,7 +3,7 @@ from typing import Literal
 import torch
 from pytorch3dunet.unet3d.losses import BCEDiceLoss
 from pytorch3dunet.unet3d.metrics import MeanIoU
-from pytorch3dunet.unet3d.model import UNet2D
+from pytorch3dunet.unet3d.model import UNet3D
 from pytorch3dunet.unet3d.trainer import UNetTrainer
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
@@ -48,7 +48,7 @@ def get_train_val_data_loaders(
 
 
 def main() -> None:
-    model = UNet2D(
+    model = UNet3D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
         final_sigmoid=True,

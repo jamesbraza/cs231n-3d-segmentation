@@ -8,6 +8,7 @@ import numpy.typing as npt
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, Subset
+from tqdm import tqdm
 
 from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
 
@@ -184,11 +185,15 @@ TEST_DS_KWARGS = {
 
 def main() -> None:
     train_ds = BraTS2020Dataset(**TRAIN_VAL_DS_KWARGS)
-    for images, targets in train_ds:  # noqa: B007
-        _ = 0
+    mins_maxes = []
+    for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
+        mid_slice = targets[0, targets.shape[1] // 2]
+        mins_maxes.append((mid_slice.min(), mid_slice.max()))
+        _ = 0  # Debug here
+    _ = 0  # Debug here
     test_ds = BraTS2020Dataset(**TEST_DS_KWARGS)
-    for images in test_ds:  # noqa: B007
-        _ = 0
+    for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
+        _ = 0  # Debug here
 
 
 if __name__ == "__main__":

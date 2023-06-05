@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader
 from torchinfo import summary
 
 from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020Dataset, split_train_val
-from unet_zoo import ZOO_FOLDER
+from unet_zoo import CHECKPOINTS_FOLDER
+from unet_zoo.utils import infer_device
 
 NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
 MASK_COUNT = 3  # WT, TC, ET
@@ -18,12 +19,6 @@ INITIAL_CONV_OUT_CHANNELS = 18
 SKIP_SLICES = 5
 BATCH_SIZE = 1
 NUM_EPOCHS = 10
-
-
-def infer_device() -> torch.device:
-    if torch.cuda.is_available():
-        return torch.device("cuda")  # Current CUDA device
-    return torch.device("cpu")
 
 
 def print_summary(
@@ -67,7 +62,7 @@ trainer = UNetTrainer(
     loss_criterion=BCEDiceLoss(alpha=1.0, beta=1.0),
     eval_criterion=MeanIoU(),
     loaders=data_loaders,
-    checkpoint_dir=str(ZOO_FOLDER),
+    checkpoint_dir=str(CHECKPOINTS_FOLDER),
     max_num_epochs=NUM_EPOCHS,
     max_num_iterations=defeat_max_num_iters,
     tensorboard_formatter=DefaultTensorboardFormatter(),

@@ -193,10 +193,9 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         self._slices_per_mri: int = slices_per_mri
         # Coordinate (scan, slice) of next slice to read
         self._coordinate: tuple[int, int] = 0, 0
-        self._current_scans: tuple[torch.Tensor, ...] = self._scans_ds[
-            self._coordinate[0]
-        ]
         self.insert_z_dim = insert_z_dim
+
+    _current_scans: tuple[torch.Tensor, ...]
 
     def __len__(self) -> int:
         return len(self._scans_ds) * self._slices_per_mri
@@ -208,12 +207,13 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         scan_index, slice_index = self._coordinate
         if scan_index >= len(self._scans_ds):
             raise StopIteration
+        if slice_index == 0:  # Fetch a new MRI scan
+            self._current_scans = self._scans_ds[self._coordinate[0]]
         slices = tuple(s[:, slice_index] for s in self._current_scans)
         if self.insert_z_dim:
             slices = tuple(s.unsqueeze(dim=-3) for s in slices)
         if slice_index + 1 == self._slices_per_mri:
             self._coordinate = scan_index + 1, 0
-            self._current_scans = self._scans_ds[self._coordinate[0]]
         else:
             self._coordinate = scan_index, slice_index + 1
         return slices

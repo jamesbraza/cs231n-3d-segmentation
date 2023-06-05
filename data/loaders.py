@@ -252,10 +252,12 @@ def play_scans_ds() -> None:
 
 
 def play_slices_ds() -> None:
-    slices_ds = BraTS2020MRISlicesDataset(
-        scans_ds=BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
+    train_scans_ds, val_scans_ds = split_train_val(
+        BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
+        batch_size=1,
     )
-    data_loader = DataLoader(slices_ds, batch_size=10)
+    train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)
+    data_loader = DataLoader(train_slices_ds, batch_size=10)
     for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
         _ = 0  # Debug here
     _ = 0  # Debug here

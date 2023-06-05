@@ -168,7 +168,7 @@ class BraTS2020MRISlicesDataset(IterableDataset):
     """
     Iterable-style dataset for BraTS 2020 MRI scan slices.
 
-    This implementation efficiently supports batching, across MRIs.
+    This implementation memory-efficiently supports batching, across MRIs.
     """
 
     def __init__(
@@ -241,16 +241,6 @@ TEST_DS_KWARGS = {
 }
 
 
-def play_slices_ds() -> None:
-    slices_ds = BraTS2020MRISlicesDataset(
-        scans_ds=BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
-    )
-    data_loader = DataLoader(slices_ds, batch_size=10)
-    for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
-        _ = 0  # Debug here
-    _ = 0  # Debug here
-
-
 def play_scans_ds() -> None:
     train_ds = BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS)
     for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
@@ -259,6 +249,16 @@ def play_scans_ds() -> None:
     test_ds = BraTS2020MRIScansDataset(**TEST_DS_KWARGS)
     for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
         _ = 0  # Debug here
+
+
+def play_slices_ds() -> None:
+    slices_ds = BraTS2020MRISlicesDataset(
+        scans_ds=BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
+    )
+    data_loader = DataLoader(slices_ds, batch_size=10)
+    for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+        _ = 0  # Debug here
+    _ = 0  # Debug here
 
 
 if __name__ == "__main__":

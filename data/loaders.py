@@ -108,8 +108,10 @@ class BraTS2020Dataset(Dataset):
             raw_img = nib.load(path).dataobj[:, :, self.skip_slices : -self.skip_slices]
         return np.asarray(raw_img)
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
+    def __getitem__(self, index: int | slice) -> tuple[torch.Tensor, ...]:
         """Get (images, masks) if training, otherwise (images,)."""
+        if isinstance(index, slice):
+            raise NotImplementedError("Dataset slicing is unimplemented.")
         raw_imgs = (
             self._load_nii_with_slicing(path)
             for path in (
@@ -117,8 +119,13 @@ class BraTS2020Dataset(Dataset):
                 for extension in self.NONMASK_EXTENSIONS
             )
         )
-        # Normalize to be in [0, 1]
-        img = np.stack((img - img.min()) / (img.max() - img.min()) for img in raw_imgs)
+        try:
+            # Normalize to be in [0, 1]
+            img = np.stack(
+                (img - img.min()) / (img.max() - img.min()) for img in raw_imgs
+            )
+        except KeyError as exc:
+            raise IndexError(f"Index {index} is not in the dataset.") from exc
         image_tensor = torch.as_tensor(
             # N x W x H x C to N x C x H x W
             np.moveaxis(img, (0, 1, 2, 3), (0, 3, 2, 1)),
@@ -185,10 +192,7 @@ TEST_DS_KWARGS = {
 
 def main() -> None:
     train_ds = BraTS2020Dataset(**TRAIN_VAL_DS_KWARGS)
-    mins_maxes = []
     for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
-        mid_slice = targets[0, targets.shape[1] // 2]
-        mins_maxes.append((mid_slice.min(), mid_slice.max()))
         _ = 0  # Debug here
     _ = 0  # Debug here
     test_ds = BraTS2020Dataset(**TEST_DS_KWARGS)

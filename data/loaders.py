@@ -249,9 +249,12 @@ TEST_DS_KWARGS = {
 
 def play_scans_ds() -> None:
     train_ds = BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS)
-    for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
-        _ = 0  # Debug here
+    data_loader = DataLoader(train_ds, batch_size=1)
+    for _ in range(2):  # Confirm can iterate over it 2+ times
+        for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+            _ = 0  # Debug here
     _ = 0  # Debug here
+
     test_ds = BraTS2020MRIScansDataset(**TEST_DS_KWARGS)
     for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
         _ = 0  # Debug here
@@ -264,8 +267,9 @@ def play_slices_ds() -> None:
     )
     train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)
     data_loader = DataLoader(train_slices_ds, batch_size=32)
-    for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
-        _ = 0  # Debug here
+    for _ in range(2):  # Confirm can iterate over it 2+ times
+        for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+            _ = 0  # Debug here
     _ = 0  # Debug here
 
 

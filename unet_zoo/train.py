@@ -31,6 +31,22 @@ def print_summary(
     summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, num_slices, 240, 240))
 
 
+def get_train_val_data_loaders(
+    skip_slices: int = SKIP_SLICES,
+    batch_size: int = BATCH_SIZE,
+) -> dict[Literal["train", "val"], DataLoader]:
+    train_val_ds = BraTS2020Dataset(
+        device=infer_device(),
+        skip_slices=skip_slices,
+        **TRAIN_VAL_DS_KWARGS,
+    )
+    train_ds, val_ds = split_train_val(train_val_ds, batch_size=batch_size)
+    return {
+        "train": DataLoader(train_ds, batch_size=batch_size),
+        "val": DataLoader(val_ds, batch_size=batch_size),
+    }
+
+
 def main() -> None:
     model = UNet3D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
@@ -41,17 +57,7 @@ def main() -> None:
     ).to(device=infer_device())
     # print_summary(model)
 
-    train_val_ds = BraTS2020Dataset(
-        device=infer_device(),
-        skip_slices=SKIP_SLICES,
-        **TRAIN_VAL_DS_KWARGS,
-    )
-    train_ds, val_ds = split_train_val(train_val_ds, batch_size=BATCH_SIZE)
-
-    data_loaders: dict[Literal["train", "val"], DataLoader] = {
-        "train": DataLoader(train_ds, batch_size=BATCH_SIZE),
-        "val": DataLoader(val_ds, batch_size=BATCH_SIZE),
-    }
+    data_loaders = get_train_val_data_loaders()
     defeat_max_num_iters = (
         NUM_EPOCHS * max(len(data_loaders[split]) for split in data_loaders) + 1
     )

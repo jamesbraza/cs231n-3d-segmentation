@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import re
 from enum import IntEnum
@@ -7,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, Subset
+from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 from tqdm import tqdm
 
 from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
@@ -46,8 +48,8 @@ class BraTS2020Classes(IntEnum):
         return mask == cls.GD_ENHANCING_TUMOR.value
 
 
-class BraTS2020Dataset(Dataset):
-    """Map-style dataset for BraTS 2020."""
+class BraTS2020MRIScansDataset(Dataset):
+    """Map-style dataset for BraTS 2020 MRI scans."""
 
     TARGET_COLUMN = "BraTS_2020_subject_ID"
     # flair = T2-weighted Fluid Attenuated Inversion Recovery (T2-FLAIR)
@@ -162,6 +164,55 @@ class BraTS2020Dataset(Dataset):
         )
 
 
+class BraTS2020MRISlicesDataset(IterableDataset):
+    """
+    Iterable-style dataset for BraTS 2020 MRI scan slices.
+
+    This implementation memory-efficiently supports batching, across MRIs.
+    """
+
+    def __init__(
+        self,
+        scans_ds: BraTS2020MRIScansDataset,
+        slices_per_mri: int | None = None,
+    ):
+        """
+        Initialize.
+
+        Args:
+            scans_ds: Dataset of MRI scans to wrap.
+            slices_per_mri: Slices per MRI to use, leave as default of None to
+                infer from the 0th MRI scan.
+        """
+        self._scans_ds = scans_ds
+        if slices_per_mri is None:  # Infer
+            slices_per_mri = scans_ds[0][0].shape[1]
+        self._slices_per_mri: int = slices_per_mri
+        # Coordinate (scan, slice) of next slice to read
+        self._coordinate: tuple[int, int] = 0, 0
+        self._current_scans: tuple[torch.Tensor, ...] = self._scans_ds[
+            self._coordinate[0]
+        ]
+
+    def __len__(self) -> int:
+        return len(self._scans_ds) * self._slices_per_mri
+
+    def __iter__(self) -> BraTS2020MRISlicesDataset:
+        return self
+
+    def __next__(self) -> tuple[torch.Tensor, ...]:
+        scan_index, slice_index = self._coordinate
+        if scan_index >= len(self._scans_ds):
+            raise StopIteration
+        slices = tuple(s[:, slice_index] for s in self._current_scans)
+        if slice_index + 1 == self._slices_per_mri:
+            self._coordinate = scan_index + 1, 0
+            self._current_scans = self._scans_ds[self._coordinate[0]]
+        else:
+            self._coordinate = scan_index, slice_index + 1
+        return slices
+
+
 def split_train_val(
     ds: Dataset,
     batch_size: int,
@@ -190,15 +241,25 @@ TEST_DS_KWARGS = {
 }
 
 
-def main() -> None:
-    train_ds = BraTS2020Dataset(**TRAIN_VAL_DS_KWARGS)
+def play_scans_ds() -> None:
+    train_ds = BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS)
     for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
         _ = 0  # Debug here
     _ = 0  # Debug here
-    test_ds = BraTS2020Dataset(**TEST_DS_KWARGS)
+    test_ds = BraTS2020MRIScansDataset(**TEST_DS_KWARGS)
     for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
         _ = 0  # Debug here
 
 
+def play_slices_ds() -> None:
+    slices_ds = BraTS2020MRISlicesDataset(
+        scans_ds=BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
+    )
+    data_loader = DataLoader(slices_ds, batch_size=10)
+    for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+        _ = 0  # Debug here
+    _ = 0  # Debug here
+
+
 if __name__ == "__main__":
-    main()
+    play_scans_ds()

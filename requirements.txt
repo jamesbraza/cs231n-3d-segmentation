@@ -281,7 +281,9 @@ torch==2.0.1
 torchinfo==1.8.0
     # via -r requirements.in
 tqdm==4.65.0
-    # via kaggle
+    # via
+    #   -r requirements.in
+    #   kaggle
 traitlets==5.9.0
     # via
     #   ipython

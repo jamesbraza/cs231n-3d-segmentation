@@ -9,11 +9,11 @@ from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020Dataset, split_train_val
+from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020MRIScansDataset, split_train_val
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.utils import infer_device
 
-NUM_SCANS_PER_EXAMPLE = len(BraTS2020Dataset.NONMASK_EXTENSIONS)
+NUM_SCANS_PER_EXAMPLE = len(BraTS2020MRIScansDataset.NONMASK_EXTENSIONS)
 MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 18
 NUM_GROUPS = 9
@@ -35,7 +35,7 @@ def get_train_val_data_loaders(
     skip_slices: int = SKIP_SLICES,
     batch_size: int = BATCH_SIZE,
 ) -> dict[Literal["train", "val"], DataLoader]:
-    train_val_ds = BraTS2020Dataset(
+    train_val_ds = BraTS2020MRIScansDataset(
         device=infer_device(),
         skip_slices=skip_slices,
         **TRAIN_VAL_DS_KWARGS,

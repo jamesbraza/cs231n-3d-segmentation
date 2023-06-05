@@ -134,6 +134,8 @@ ignore = [
     "TCH001",  # TCH001, TCH002, TCH003: don't care to enforce type checking blocks
     "TCH002",
     "TCH003",
+    "TD002",  # Don't care for TODO author
+    "TD003",  # Don't care for TODO links
     "TRY003",  # Overly pedantic
 ]
 unfixable = [

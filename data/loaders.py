@@ -46,8 +46,8 @@ class BraTS2020Classes(IntEnum):
         return mask == cls.GD_ENHANCING_TUMOR.value
 
 
-class BraTS2020Dataset(Dataset):
-    """Map-style dataset for BraTS 2020."""
+class BraTS2020MRIScansDataset(Dataset):
+    """Map-style dataset for BraTS 2020 MRI scans."""
 
     TARGET_COLUMN = "BraTS_2020_subject_ID"
     # flair = T2-weighted Fluid Attenuated Inversion Recovery (T2-FLAIR)
@@ -162,6 +162,44 @@ class BraTS2020Dataset(Dataset):
         )
 
 
+class BraTS2020MRISlicesDataset(BraTS2020MRIScansDataset):
+    """Map-style dataset for BraTS 2020 MRI scan slices."""
+
+    # TODO: change this entity in favor of more efficient technique. This
+    # dataset reads in entire MRIs just to return one slice of them.
+
+    def __init__(  # noqa: D417
+        self,
+        data_folder_path: os.PathLike | str,
+        mapping_csv_name: str,
+        device: torch.device | None = None,
+        train: bool = True,
+        skip_slices: int = 0,
+        slices_per_mri: int | None = None,
+    ):
+        """
+        Initialize.
+
+        Args:
+            ...
+            slices_per_mri: Slices per MRI to use, leave as default of None to
+                infer from the 0th MRI scan.
+        """
+        super().__init__(data_folder_path, mapping_csv_name, device, train, skip_slices)
+        if slices_per_mri is None:  # Infer
+            slices_per_mri = super().__getitem__(0)[0].shape[1]
+        self._slices_per_mri = slices_per_mri
+
+    def __len__(self) -> int:
+        return super().__len__() * self._slices_per_mri
+
+    def __getitem__(self, index: int | slice) -> tuple[torch.Tensor, ...]:
+        if isinstance(index, slice):
+            raise NotImplementedError("Dataset slicing is unimplemented.")
+        scan_index, slice_index = divmod(index, self._slices_per_mri)
+        return tuple(t[:, slice_index] for t in super().__getitem__(scan_index))
+
+
 def split_train_val(
     ds: Dataset,
     batch_size: int,
@@ -191,11 +229,11 @@ TEST_DS_KWARGS = {
 
 
 def main() -> None:
-    train_ds = BraTS2020Dataset(**TRAIN_VAL_DS_KWARGS)
+    train_ds = BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS)
     for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
         _ = 0  # Debug here
     _ = 0  # Debug here
-    test_ds = BraTS2020Dataset(**TEST_DS_KWARGS)
+    test_ds = BraTS2020MRIScansDataset(**TEST_DS_KWARGS)
     for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
         _ = 0  # Debug here
 

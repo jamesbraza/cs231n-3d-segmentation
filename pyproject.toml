@@ -137,7 +137,8 @@ ignore = [
     "TRY003",  # Overly pedantic
 ]
 unfixable = [
-    "F401"  # Unused imports are nice for project
+    "F401",  # Unused imports are nice for project
+    "F841",  # Unused locals are nice for project
 ]
 
 # Line length to use when enforcing long-lines violations (like `E501`).

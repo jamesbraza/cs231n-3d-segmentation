@@ -3,7 +3,7 @@ from typing import Literal
 import torch
 from pytorch3dunet.unet3d.losses import BCEDiceLoss
 from pytorch3dunet.unet3d.metrics import MeanIoU
-from pytorch3dunet.unet3d.model import UNet3D
+from pytorch3dunet.unet3d.model import UNet2D
 from pytorch3dunet.unet3d.trainer import UNetTrainer
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
@@ -13,6 +13,7 @@ from data.loaders import (
     NUM_SCANS_PER_EXAMPLE,
     TRAIN_VAL_DS_KWARGS,
     BraTS2020MRIScansDataset,
+    BraTS2020MRISlicesDataset,
     make_generator,
 )
 from unet_zoo import CHECKPOINTS_FOLDER
@@ -21,7 +22,7 @@ from unet_zoo.utils import infer_device, print_model_summary  # noqa: F401
 INITIAL_CONV_OUT_CHANNELS = 18
 NUM_GROUPS = 9
 SKIP_SLICES = 5
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 NUM_EPOCHS = 10
 GENERATOR = make_generator(42)
 
@@ -51,7 +52,7 @@ def get_train_val_test_scans_datasets(
 
 
 def main() -> None:
-    model = UNet3D(
+    model = UNet2D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
         final_sigmoid=True,
@@ -61,7 +62,7 @@ def main() -> None:
     # print_model_summary(model)
 
     data_loaders: dict[Literal["train", "val", "test"], DataLoader] = {
-        name: DataLoader(ds, batch_size=BATCH_SIZE)
+        name: DataLoader(BraTS2020MRISlicesDataset(scans_ds=ds), batch_size=BATCH_SIZE)
         for name, ds in zip(
             ("train", "val", "test"),
             get_train_val_test_scans_datasets(),

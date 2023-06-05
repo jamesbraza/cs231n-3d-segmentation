@@ -12,7 +12,7 @@ from unet_zoo.train import (
     MASK_COUNT,
     NUM_GROUPS,
     NUM_SCANS_PER_EXAMPLE,
-    get_train_val_datasets,
+    get_train_val_scans_datasets,
 )
 from unet_zoo.utils import infer_device
 
@@ -32,7 +32,7 @@ def main() -> None:
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
     model.eval()
-    val_ds = get_train_val_datasets()[1]
+    val_ds = get_train_val_scans_datasets()[1]
     for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
         wt_labels, tc_labels, et_labels = (targets[0][i] for i in range(3))
         with torch.no_grad():

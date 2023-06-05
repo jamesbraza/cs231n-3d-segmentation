@@ -3,18 +3,13 @@ from typing import Literal
 import torch
 from pytorch3dunet.unet3d.losses import BCEDiceLoss
 from pytorch3dunet.unet3d.metrics import MeanIoU
-from pytorch3dunet.unet3d.model import UNet2D
+from pytorch3dunet.unet3d.model import UNet3D
 from pytorch3dunet.unet3d.trainer import UNetTrainer
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from data.loaders import (
-    TRAIN_VAL_DS_KWARGS,
-    BraTS2020MRIScansDataset,
-    BraTS2020MRISlicesDataset,
-    split_train_val,
-)
+from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020MRIScansDataset, split_train_val
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.utils import infer_device
 
@@ -36,9 +31,9 @@ def print_summary(
     summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, num_slices, 240, 240))
 
 
-def get_train_val_datasets(
+def get_train_val_scans_datasets(
     skip_slices: int = SKIP_SLICES,
-    batch_size: int = BATCH_SIZE,
+    batch_size: int = 1,
 ) -> tuple[BraTS2020MRIScansDataset, BraTS2020MRIScansDataset]:
     train_val_ds = BraTS2020MRIScansDataset(
         device=infer_device(),
@@ -49,7 +44,7 @@ def get_train_val_datasets(
 
 
 def main() -> None:
-    model = UNet2D(
+    model = UNet3D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
         final_sigmoid=True,
@@ -59,8 +54,12 @@ def main() -> None:
     # print_summary(model)
 
     data_loaders: dict[Literal["train", "val"], DataLoader] = {
-        name: BraTS2020MRISlicesDataset(scans_ds=ds)
-        for name, ds in zip(("train", "val"), get_train_val_datasets(), strict=True)
+        name: DataLoader(ds, batch_size=BATCH_SIZE)
+        for name, ds in zip(
+            ("train", "val"),
+            get_train_val_scans_datasets(),
+            strict=True,
+        )
     }
     defeat_max_num_iters = (
         NUM_EPOCHS * max(len(data_loaders[split]) for split in data_loaders) + 1

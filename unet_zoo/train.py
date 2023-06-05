@@ -64,6 +64,7 @@ def main() -> None:
     defeat_max_num_iters = (
         NUM_EPOCHS * max(len(data_loaders[split]) for split in data_loaders) + 1
     )
+    log_after_iters = int(defeat_max_num_iters / 20)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
     trainer = UNetTrainer(
@@ -76,6 +77,8 @@ def main() -> None:
         checkpoint_dir=str(CHECKPOINTS_FOLDER),
         max_num_epochs=NUM_EPOCHS,
         max_num_iterations=defeat_max_num_iters,
+        validate_after_iters=2 * log_after_iters,
+        log_after_iters=log_after_iters,
         tensorboard_formatter=DefaultTensorboardFormatter(),
     )
     trainer.fit()

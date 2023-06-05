@@ -193,10 +193,9 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         self._slices_per_mri: int = slices_per_mri
         # Coordinate (scan, slice) of next slice to read
         self._coordinate: tuple[int, int] = 0, 0
-        self._current_scans: tuple[torch.Tensor, ...] = self._scans_ds[
-            self._coordinate[0]
-        ]
         self.insert_z_dim = insert_z_dim
+
+    _current_scans: tuple[torch.Tensor, ...]
 
     def __len__(self) -> int:
         return len(self._scans_ds) * self._slices_per_mri
@@ -207,13 +206,15 @@ class BraTS2020MRISlicesDataset(IterableDataset):
     def __next__(self) -> tuple[torch.Tensor, ...]:
         scan_index, slice_index = self._coordinate
         if scan_index >= len(self._scans_ds):
+            self._coordinate = 0, 0  # Reset for next cycle through the dataset
             raise StopIteration
+        if slice_index == 0:  # Fetch a new MRI scan
+            self._current_scans = self._scans_ds[self._coordinate[0]]
         slices = tuple(s[:, slice_index] for s in self._current_scans)
         if self.insert_z_dim:
             slices = tuple(s.unsqueeze(dim=-3) for s in slices)
         if slice_index + 1 == self._slices_per_mri:
             self._coordinate = scan_index + 1, 0
-            self._current_scans = self._scans_ds[self._coordinate[0]]
         else:
             self._coordinate = scan_index, slice_index + 1
         return slices
@@ -249,9 +250,18 @@ TEST_DS_KWARGS = {
 
 def play_scans_ds() -> None:
     train_ds = BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS)
-    for images, targets in tqdm(train_ds, desc="training dataset"):  # noqa: B007
-        _ = 0  # Debug here
+    data_loader = DataLoader(train_ds, batch_size=1)
+
+    num_ex_seen, num_iters = 0, 2
+    for _ in range(num_iters):  # Confirm can iterate over it 2+ times
+        for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+            num_ex_seen += 1
+            _ = 0  # Debug here
     _ = 0  # Debug here
+    assert (
+        num_ex_seen == len(data_loader) * num_iters
+    ), f"Unexpected number of examples seen {num_ex_seen}."
+
     test_ds = BraTS2020MRIScansDataset(**TEST_DS_KWARGS)
     for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
         _ = 0  # Debug here
@@ -262,11 +272,19 @@ def play_slices_ds() -> None:
         BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
         batch_size=1,
     )
-    train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)
-    data_loader = DataLoader(train_slices_ds, batch_size=32)
-    for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
-        _ = 0  # Debug here
+    train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)  # noqa: F841
+    val_slices_ds = BraTS2020MRISlicesDataset(scans_ds=val_scans_ds)
+    data_loader = DataLoader(val_slices_ds, batch_size=32)
+
+    num_ex_seen, num_iters = 0, 2
+    for _ in range(num_iters):  # Confirm can iterate over it 2+ times
+        for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+            num_ex_seen += 1
+            _ = 0  # Debug here
     _ = 0  # Debug here
+    assert (
+        num_ex_seen == len(data_loader) * num_iters
+    ), f"Unexpected number of examples seen {num_ex_seen}."
 
 
 if __name__ == "__main__":

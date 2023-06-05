@@ -100,7 +100,7 @@ in the AWS security group:
 First, start TensorBoard on the remote machine:
 
 ```shell
-tensorboard --logdir <path>  --host 0.0.0.0 --port 6006
+tensorboard --logdir <path> --host 0.0.0.0 --port 6006
 ```
 
 Then on the local machine:

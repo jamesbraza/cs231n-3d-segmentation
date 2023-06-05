@@ -206,6 +206,7 @@ class BraTS2020MRISlicesDataset(IterableDataset):
     def __next__(self) -> tuple[torch.Tensor, ...]:
         scan_index, slice_index = self._coordinate
         if scan_index >= len(self._scans_ds):
+            self._coordinate = 0, 0  # Reset for next cycle through the dataset
             raise StopIteration
         if slice_index == 0:  # Fetch a new MRI scan
             self._current_scans = self._scans_ds[self._coordinate[0]]
@@ -250,10 +251,16 @@ TEST_DS_KWARGS = {
 def play_scans_ds() -> None:
     train_ds = BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS)
     data_loader = DataLoader(train_ds, batch_size=1)
-    for _ in range(2):  # Confirm can iterate over it 2+ times
+
+    num_ex_seen, num_iters = 0, 2
+    for _ in range(num_iters):  # Confirm can iterate over it 2+ times
         for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+            num_ex_seen += 1
             _ = 0  # Debug here
     _ = 0  # Debug here
+    assert (
+        num_ex_seen == len(data_loader) * num_iters
+    ), f"Unexpected number of examples seen {num_ex_seen}."
 
     test_ds = BraTS2020MRIScansDataset(**TEST_DS_KWARGS)
     for images in tqdm(test_ds, desc="test dataset"):  # noqa: B007
@@ -265,12 +272,19 @@ def play_slices_ds() -> None:
         BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
         batch_size=1,
     )
-    train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)
-    data_loader = DataLoader(train_slices_ds, batch_size=32)
-    for _ in range(2):  # Confirm can iterate over it 2+ times
+    train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)  # noqa: F841
+    val_slices_ds = BraTS2020MRISlicesDataset(scans_ds=val_scans_ds)
+    data_loader = DataLoader(val_slices_ds, batch_size=32)
+
+    num_ex_seen, num_iters = 0, 2
+    for _ in range(num_iters):  # Confirm can iterate over it 2+ times
         for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
+            num_ex_seen += 1
             _ = 0  # Debug here
     _ = 0  # Debug here
+    assert (
+        num_ex_seen == len(data_loader) * num_iters
+    ), f"Unexpected number of examples seen {num_ex_seen}."
 
 
 if __name__ == "__main__":

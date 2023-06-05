@@ -31,20 +31,16 @@ def print_summary(
     summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, num_slices, 240, 240))
 
 
-def get_train_val_data_loaders(
+def get_train_val_scans_datasets(
     skip_slices: int = SKIP_SLICES,
-    batch_size: int = BATCH_SIZE,
-) -> dict[Literal["train", "val"], DataLoader]:
+    batch_size: int = 1,
+) -> tuple[BraTS2020MRIScansDataset, BraTS2020MRIScansDataset]:
     train_val_ds = BraTS2020MRIScansDataset(
         device=infer_device(),
         skip_slices=skip_slices,
         **TRAIN_VAL_DS_KWARGS,
     )
-    train_ds, val_ds = split_train_val(train_val_ds, batch_size=batch_size)
-    return {
-        "train": DataLoader(train_ds, batch_size=batch_size),
-        "val": DataLoader(val_ds, batch_size=batch_size),
-    }
+    return split_train_val(train_val_ds, batch_size=batch_size)
 
 
 def main() -> None:
@@ -57,7 +53,14 @@ def main() -> None:
     ).to(device=infer_device())
     # print_summary(model)
 
-    data_loaders = get_train_val_data_loaders()
+    data_loaders: dict[Literal["train", "val"], DataLoader] = {
+        name: DataLoader(ds, batch_size=BATCH_SIZE)
+        for name, ds in zip(
+            ("train", "val"),
+            get_train_val_scans_datasets(),
+            strict=True,
+        )
+    }
     defeat_max_num_iters = (
         NUM_EPOCHS * max(len(data_loaders[split]) for split in data_loaders) + 1
     )

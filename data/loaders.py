@@ -175,6 +175,7 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         self,
         scans_ds: BraTS2020MRIScansDataset,
         slices_per_mri: int | None = None,
+        insert_z_dim: bool = True,
     ):
         """
         Initialize.
@@ -183,6 +184,8 @@ class BraTS2020MRISlicesDataset(IterableDataset):
             scans_ds: Dataset of MRI scans to wrap.
             slices_per_mri: Slices per MRI to use, leave as default of None to
                 infer from the 0th MRI scan.
+            insert_z_dim: Set True (default) to add a placeholder C dimension,
+                for compatibility with pytorch-3dunet's UNet2D training.
         """
         self._scans_ds = scans_ds
         if slices_per_mri is None:  # Infer
@@ -193,6 +196,7 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         self._current_scans: tuple[torch.Tensor, ...] = self._scans_ds[
             self._coordinate[0]
         ]
+        self.insert_z_dim = insert_z_dim
 
     def __len__(self) -> int:
         return len(self._scans_ds) * self._slices_per_mri
@@ -205,6 +209,8 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         if scan_index >= len(self._scans_ds):
             raise StopIteration
         slices = tuple(s[:, slice_index] for s in self._current_scans)
+        if self.insert_z_dim:
+            slices = tuple(s.unsqueeze(dim=-3) for s in slices)
         if slice_index + 1 == self._slices_per_mri:
             self._coordinate = scan_index + 1, 0
             self._current_scans = self._scans_ds[self._coordinate[0]]
@@ -252,10 +258,12 @@ def play_scans_ds() -> None:
 
 
 def play_slices_ds() -> None:
-    slices_ds = BraTS2020MRISlicesDataset(
-        scans_ds=BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
+    train_scans_ds, val_scans_ds = split_train_val(
+        BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
+        batch_size=1,
     )
-    data_loader = DataLoader(slices_ds, batch_size=10)
+    train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)
+    data_loader = DataLoader(train_slices_ds, batch_size=32)
     for images, targets in tqdm(data_loader, desc="training dataset"):  # noqa: B007
         _ = 0  # Debug here
     _ = 0  # Debug here

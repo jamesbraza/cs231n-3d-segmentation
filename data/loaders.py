@@ -10,7 +10,7 @@ import numpy.typing as npt
 import pandas as pd
 import torch
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
-from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 from tqdm import tqdm
 
 from data import BRATS_2020_TRAINING_FOLDER, BRATS_2020_VALIDATION_FOLDER
@@ -55,7 +55,7 @@ class BraTS2020MRIScansDataset(Dataset):
     TARGET_COLUMN = "BraTS_2020_subject_ID"
     # flair = T2-weighted Fluid Attenuated Inversion Recovery (T2-FLAIR)
     # t1 = native T1-weighted (T1)
-    # t1ce = post-contrast T1-weighted (T1Gd)
+    # t1ce = post-contrast T1-weighted (T1Gd), ce means contrast enhanced
     # t2 = T2-weighted (T2)
     NONMASK_EXTENSIONS = ["_flair.nii", "_t1.nii", "_t1ce.nii", "_t2.nii"]
     MASK_EXTENSION = "_seg.nii"
@@ -165,6 +165,9 @@ class BraTS2020MRIScansDataset(Dataset):
         )
 
 
+NUM_SCANS_PER_EXAMPLE = len(BraTS2020MRIScansDataset.NONMASK_EXTENSIONS)
+
+
 class BraTS2020MRISlicesDataset(IterableDataset):
     """
     Iterable-style dataset for BraTS 2020 MRI scan slices.
@@ -255,19 +258,10 @@ class BraTS2020MRISlicesDataset(IterableDataset):
         return slices
 
 
-def split_train_val(
-    ds: Dataset,
-    batch_size: int,
-    fraction: float = 0.9,
-) -> tuple[Subset, Subset]:
-    """Split the input dataset into two based on a batch size and fraction."""
-    num_train = int(len(ds) / batch_size * fraction)
-    return tuple(
-        torch.utils.data.random_split(
-            dataset=ds,
-            lengths=(num_train, len(ds) - num_train),
-        ),
-    )
+def make_generator(seed: int | None) -> torch.Generator:
+    if seed is None:
+        return torch.default_generator
+    return torch.Generator().manual_seed(seed)
 
 
 # Has labels
@@ -303,9 +297,9 @@ def play_scans_ds() -> None:
 
 
 def play_slices_ds() -> None:
-    train_scans_ds, val_scans_ds = split_train_val(
+    train_scans_ds, val_scans_ds = torch.utils.data.random_split(
         BraTS2020MRIScansDataset(**TRAIN_VAL_DS_KWARGS),
-        batch_size=1,
+        lengths=(0.9, 0.1),
     )
     train_slices_ds = BraTS2020MRISlicesDataset(scans_ds=train_scans_ds)  # noqa: F841
     val_slices_ds = BraTS2020MRISlicesDataset(scans_ds=val_scans_ds)

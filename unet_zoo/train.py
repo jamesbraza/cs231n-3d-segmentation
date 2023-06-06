@@ -7,40 +7,43 @@ from pytorch3dunet.unet3d.model import UNet3D
 from pytorch3dunet.unet3d.trainer import UNetTrainer
 from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
-from torchinfo import summary
 
-from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020MRIScansDataset, split_train_val
+from data.loaders import (
+    NUM_SCANS_PER_EXAMPLE,
+    TRAIN_VAL_DS_KWARGS,
+    BraTS2020MRIScansDataset,
+    make_generator,
+)
 from unet_zoo import CHECKPOINTS_FOLDER
-from unet_zoo.utils import infer_device
+from unet_zoo.utils import infer_device, print_model_summary  # noqa: F401
 
-NUM_SCANS_PER_EXAMPLE = len(BraTS2020MRIScansDataset.NONMASK_EXTENSIONS)
 MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 18
 NUM_GROUPS = 9
 SKIP_SLICES = 5
 BATCH_SIZE = 1
 NUM_EPOCHS = 10
-
-
-def print_summary(
-    model: torch.nn.Module,
-    skip_slices: int = SKIP_SLICES,
-    batch_size: int = BATCH_SIZE,
-) -> None:
-    num_slices = 155 - 2 * skip_slices
-    summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, num_slices, 240, 240))
+GENERATOR = make_generator(42)
 
 
 def get_train_val_scans_datasets(
     skip_slices: int = SKIP_SLICES,
-    batch_size: int = 1,
+    generator: torch.Generator | None = GENERATOR,
 ) -> tuple[BraTS2020MRIScansDataset, BraTS2020MRIScansDataset]:
     train_val_ds = BraTS2020MRIScansDataset(
         device=infer_device(),
         skip_slices=skip_slices,
         **TRAIN_VAL_DS_KWARGS,
     )
-    return split_train_val(train_val_ds, batch_size=batch_size)
+    if generator is None:
+        generator = torch.default_generator
+    return tuple(
+        torch.utils.data.random_split(
+            train_val_ds,
+            lengths=(0.9, 0.1),
+            generator=generator,
+        ),
+    )
 
 
 def main() -> None:
@@ -51,7 +54,7 @@ def main() -> None:
         f_maps=INITIAL_CONV_OUT_CHANNELS,
         num_groups=NUM_GROUPS,
     ).to(device=infer_device())
-    # print_summary(model)
+    # print_model_summary(model)
 
     data_loaders: dict[Literal["train", "val"], DataLoader] = {
         name: DataLoader(ds, batch_size=BATCH_SIZE)

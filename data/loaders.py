@@ -55,7 +55,7 @@ class BraTS2020MRIScansDataset(Dataset):
     TARGET_COLUMN = "BraTS_2020_subject_ID"
     # flair = T2-weighted Fluid Attenuated Inversion Recovery (T2-FLAIR)
     # t1 = native T1-weighted (T1)
-    # t1ce = post-contrast T1-weighted (T1Gd)
+    # t1ce = post-contrast T1-weighted (T1Gd), ce means contrast enhanced
     # t2 = T2-weighted (T2)
     NONMASK_EXTENSIONS = ["_flair.nii", "_t1.nii", "_t1ce.nii", "_t2.nii"]
     MASK_EXTENSION = "_seg.nii"

@@ -9,6 +9,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
+from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Subset
 from tqdm import tqdm
 
@@ -170,6 +171,40 @@ class BraTS2020MRISlicesDataset(IterableDataset):
 
     This implementation memory-efficiently supports batching, across MRIs.
     """
+
+    class TensorBoardFormatter(DefaultTensorboardFormatter):
+        """TensorBoard formatter set up to work with slices dataset."""
+
+        TAG_TEMPLATE = "{}/batch_{}/channel_{}/slice_{}"
+
+        def process_batch(
+            self,
+            name: str,
+            batch: npt.NDArray[float],
+        ) -> list[tuple[str, npt.NDArray[float]]]:
+            # N: number of slices/batch
+            # C: MRI index or segmentation type (WT, TC, ET)
+            # D = 1: inserted extra Z dimension
+            # H, W: slice height and width
+            if len(batch.shape) != 5:  # NCDHW
+                raise NotImplementedError(
+                    f"Didn't handle batch size from batch shape {batch.shape}.",
+                )
+            if name == "targets" and self.skip_last_target:
+                batch = batch[:, :-1, ...]
+
+            batch_index, C, placeholder_z = 0, batch.shape[1], 0
+            return [
+                (
+                    self.TAG_TEMPLATE.format(name, 0, i, batch_index),
+                    self._normalize_img(batch[batch_index, i, placeholder_z]),
+                )
+                for i in range(C)
+            ]
+
+    @classmethod
+    def get_tensorboard_formatter(cls) -> DefaultTensorboardFormatter:
+        return cls.TensorBoardFormatter()
 
     def __init__(
         self,

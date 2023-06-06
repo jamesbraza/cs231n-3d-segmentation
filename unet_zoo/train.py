@@ -5,7 +5,6 @@ from pytorch3dunet.unet3d.losses import BCEDiceLoss
 from pytorch3dunet.unet3d.metrics import MeanIoU
 from pytorch3dunet.unet3d.model import UNet2D
 from pytorch3dunet.unet3d.trainer import UNetTrainer
-from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 
 from data.loaders import (
@@ -83,7 +82,7 @@ def main() -> None:
         max_num_iterations=defeat_max_num_iters,
         validate_after_iters=2 * log_after_iters,
         log_after_iters=log_after_iters,
-        tensorboard_formatter=DefaultTensorboardFormatter(),
+        tensorboard_formatter=BraTS2020MRISlicesDataset.get_tensorboard_formatter(),
     )
     trainer.fit()
 

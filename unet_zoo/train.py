@@ -9,7 +9,7 @@ from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 from torchinfo import summary
 
-from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020MRIScansDataset
+from data.loaders import TRAIN_VAL_DS_KWARGS, BraTS2020MRIScansDataset, make_generator
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.utils import infer_device
 
@@ -20,6 +20,7 @@ NUM_GROUPS = 9
 SKIP_SLICES = 5
 BATCH_SIZE = 1
 NUM_EPOCHS = 10
+GENERATOR = make_generator(42)
 
 
 def print_summary(
@@ -33,13 +34,22 @@ def print_summary(
 
 def get_train_val_scans_datasets(
     skip_slices: int = SKIP_SLICES,
+    generator: torch.Generator | None = GENERATOR,
 ) -> tuple[BraTS2020MRIScansDataset, BraTS2020MRIScansDataset]:
     train_val_ds = BraTS2020MRIScansDataset(
         device=infer_device(),
         skip_slices=skip_slices,
         **TRAIN_VAL_DS_KWARGS,
     )
-    return tuple(torch.utils.data.random_split(train_val_ds, lengths=(0.9, 0.1)))
+    if generator is None:
+        generator = torch.default_generator
+    return tuple(
+        torch.utils.data.random_split(
+            train_val_ds,
+            lengths=(0.9, 0.1),
+            generator=generator,
+        ),
+    )
 
 
 def main() -> None:

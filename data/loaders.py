@@ -165,6 +165,9 @@ class BraTS2020MRIScansDataset(Dataset):
         )
 
 
+NUM_SCANS_PER_EXAMPLE = len(BraTS2020MRIScansDataset.NONMASK_EXTENSIONS)
+
+
 class BraTS2020MRISlicesDataset(IterableDataset):
     """
     Iterable-style dataset for BraTS 2020 MRI scan slices.

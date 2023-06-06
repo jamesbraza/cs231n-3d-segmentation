@@ -52,6 +52,13 @@ def make_summary_plot(
         fig.add_subplot(gs[1, 2:]),
         pred_masks,
     )
+    for title, (ax, _) in zip(
+        ["Target Mask", "Predicted Mask"],
+        axes_masks,
+        strict=True,
+    ):
+        ax.set_title(title, fontsize=18, weight="bold", y=-0.15)
+
     all_seg_ax_imgs: list[list] = [
         [ax.imshow(mask[0, wt_mask_middle], cmap="summer") for ax, mask in axes_masks],
         [
@@ -109,11 +116,13 @@ def make_summary_plot(
         title_fontsize=18,
         framealpha=0.0,
     )
+
+    # 3. Wrap up with display of title
     for ax_ in (*axes, *(ax for ax, _ in axes_masks)):
         ax_.set_axis_off()
     scan_id = "" if scan_id is None else f"{scan_id} "
     plt.suptitle(
-        f"MRI Scan {scan_id}at Slice {wt_mask_middle} | Target Mask - Actual Mask",
+        f"MRI Scan {scan_id}at Slice {wt_mask_middle}",
         fontsize=20,
         weight="bold",
     )

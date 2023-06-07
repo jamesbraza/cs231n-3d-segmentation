@@ -250,7 +250,6 @@ scikit-learn==1.2.2
     #   qudida
 scipy==1.10.1
     # via
-    #   -r requirements.in
     #   albumentations
     #   nilearn
     #   scikit-image

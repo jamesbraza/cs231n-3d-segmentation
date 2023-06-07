@@ -1,9 +1,7 @@
 from collections import deque
-from collections.abc import Iterable
 from typing import TypeVar
 
 import numpy as np
-import scipy
 import torch
 from torchinfo import summary
 
@@ -46,31 +44,6 @@ def get_mask_middle(
             last = i - 1
         prior_max = max(window)
     return (first + last) // 2
-
-
-TOP_TO_SIDE = {"angle": -90.0, "axes": (0, 2)}, {"angle": -90.0, "axes": (1, 2)}
-TOP_TO_FRONT = ({"angle": -90.0, "axes": (0, 1)},)
-
-
-def rotate(
-    volume: torch.Tensor,
-    angle: float,
-    axes: tuple[int, int] = (1, 0),
-    **rotate_kwargs,
-) -> torch.Tensor:
-    """Wrap scipy.ndimage.rotate for rotating an MRI."""
-    orig_device = volume.device
-    return torch.as_tensor(
-        scipy.ndimage.rotate(volume.cpu(), angle, axes, **rotate_kwargs),
-        device=orig_device,
-    )
-
-
-def multi_rotate(volume: torch.Tensor, multi_kwargs: Iterable[dict]) -> torch.Tensor:
-    """Apply 0+ rotations in sequence."""
-    for kwargs in multi_kwargs:
-        volume = rotate(volume, **kwargs)
-    return volume
 
 
 TArr = TypeVar("TArr", np.ndarray, torch.Tensor)

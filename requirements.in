@@ -19,7 +19,6 @@ tqdm
 
 # unet_zoo
 git+https://github.com/wolny/pytorch-3dunet.git@1.5.1
-scipy
 tensorboard
 torch
 

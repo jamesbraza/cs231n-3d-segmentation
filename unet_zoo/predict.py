@@ -7,9 +7,11 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from pytorch3dunet.unet3d.model import UNet3D
+from pytorch3dunet.unet3d.metrics import MeanIoU
+from pytorch3dunet.unet3d.model import AbstractUNet, UNet3D
 from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.train import (
@@ -136,16 +138,7 @@ def make_summary_plot(
     )
 
 
-def main() -> None:
-    model = UNet3D(
-        in_channels=NUM_SCANS_PER_EXAMPLE,
-        out_channels=MASK_COUNT,
-        final_sigmoid=True,
-        f_maps=INITIAL_CONV_OUT_CHANNELS,
-        num_groups=NUM_GROUPS,
-    ).to(device=infer_device())
-    state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
-
+def make_summary_plots(model: AbstractUNet) -> None:
     model.eval()
     val_ds = get_train_val_scans_datasets()[1]
     for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
@@ -159,6 +152,37 @@ def main() -> None:
                 slice_dim=i,
             )
         _ = 0  # Debug here
+
+
+def pick_best_threshold(model: AbstractUNet) -> dict[float, float]:
+    model.eval()
+    val_ds = get_train_val_scans_datasets()[1]
+    calc_iou = MeanIoU()
+    threshold_to_mean_iou: dict[float, float] = {}
+    for threshold in tqdm(np.arange(0.1, 0.9, 0.1), desc="trying thresholds"):
+        ious: list[float] = []
+        for images, targets in tqdm(
+            DataLoader(val_ds, batch_size=BATCH_SIZE),
+            desc="compiling ious",
+        ):
+            with torch.no_grad():
+                preds = model(images)
+            ious.append(calc_iou(preds, targets))
+        threshold_to_mean_iou[threshold] = np.mean(ious)
+    return threshold_to_mean_iou
+
+
+def main() -> None:
+    model = UNet3D(
+        in_channels=NUM_SCANS_PER_EXAMPLE,
+        out_channels=MASK_COUNT,
+        final_sigmoid=True,
+        f_maps=INITIAL_CONV_OUT_CHANNELS,
+        num_groups=NUM_GROUPS,
+    ).to(device=infer_device())
+    state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
+
+    print(pick_best_threshold(model))
 
 
 if __name__ == "__main__":

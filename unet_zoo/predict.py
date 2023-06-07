@@ -1,6 +1,7 @@
 from typing import Any
 
 import matplotlib.axes
+import matplotlib.figure
 import matplotlib.gridspec as gridspec
 import matplotlib.image
 import matplotlib.patches as mpatches
@@ -35,7 +36,8 @@ def make_summary_plot(
     pred_masks: torch.Tensor,
     scan_id: int | None = None,
     slice_dim: int = 0,
-):
+) -> matplotlib.figure.Figure:
+    """Create a summary plot depicting images, targets, and predictions."""
     fig = plt.figure(figsize=(20, 10))
     axes: list[matplotlib.axes.Axes] = []
     wt_mask_middle = get_mask_middle(mask=actual_masks[0], middle_dim=slice_dim)
@@ -136,6 +138,7 @@ def make_summary_plot(
         fontsize=20,
         weight="bold",
     )
+    return fig
 
 
 def make_summary_plots(model: AbstractUNet) -> None:
@@ -145,7 +148,7 @@ def make_summary_plots(model: AbstractUNet) -> None:
         with torch.no_grad():
             preds = model(images)[0] > THRESHOLD
         for i in range(MASK_COUNT):
-            make_summary_plot(
+            summary_fig = make_summary_plot(  # noqa: F841
                 images=images[0],
                 actual_masks=targets[0],
                 pred_masks=preds,
@@ -154,7 +157,8 @@ def make_summary_plots(model: AbstractUNet) -> None:
         _ = 0  # Debug here
 
 
-def pick_best_threshold(model: AbstractUNet) -> dict[float, float]:
+def sweep_thresholds(model: AbstractUNet) -> dict[float, float]:
+    """Sweep through possible binary thresholds to maximize IoU."""
     model.eval()
     val_ds = get_train_val_scans_datasets()[1]
     calc_iou = MeanIoU()
@@ -166,7 +170,7 @@ def pick_best_threshold(model: AbstractUNet) -> dict[float, float]:
             desc="compiling ious",
         ):
             with torch.no_grad():
-                preds = model(images)
+                preds = model(images) >= threshold
             ious.append(calc_iou(preds, targets))
         threshold_to_mean_iou[threshold] = np.mean(ious)
     return threshold_to_mean_iou
@@ -182,7 +186,7 @@ def main() -> None:
     ).to(device=infer_device())
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
-    print(pick_best_threshold(model))
+    print(sweep_thresholds(model))
 
 
 if __name__ == "__main__":

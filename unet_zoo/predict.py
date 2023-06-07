@@ -176,7 +176,7 @@ def sweep_thresholds(
         ):
             with torch.no_grad():
                 preds = model(images) >= threshold
-            ious.append(calc_iou(preds, targets))
+            ious.append(calc_iou(input=preds, target=targets))
         threshold_to_mean_iou[threshold] = np.mean(ious)
 
     if save_filename is not None:
@@ -200,6 +200,8 @@ def main() -> None:
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
     print(sweep_thresholds(model))
+    print(sweep_thresholds(model, min_max=(0.8, 1.0), num=21))
+    print(sweep_thresholds(model, min_max=(0.0, 0.2), num=21))
 
 
 if __name__ == "__main__":

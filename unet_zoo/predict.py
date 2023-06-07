@@ -1,8 +1,8 @@
 from typing import Any
 
-import matplotlib.artist
 import matplotlib.axes
 import matplotlib.gridspec as gridspec
+import matplotlib.image
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +20,7 @@ from unet_zoo.train import (
     NUM_SCANS_PER_EXAMPLE,
     get_train_val_scans_datasets,
 )
-from unet_zoo.utils import get_mask_middle, infer_device
+from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
@@ -32,10 +32,12 @@ def make_summary_plot(
     actual_masks: torch.Tensor,
     pred_masks: torch.Tensor,
     scan_id: int | None = None,
+    slice_dim: int = 0,
 ):
     fig = plt.figure(figsize=(20, 10))
     axes: list[matplotlib.axes.Axes] = []
-    wt_mask_middle = get_mask_middle(mask=actual_masks[0])
+    wt_mask_middle = get_mask_middle(mask=actual_masks[0], middle_dim=slice_dim)
+    element_dim = wt_mask_middle, slice_dim
     gs = gridspec.GridSpec(nrows=2, ncols=4, height_ratios=[1, 1.5])
 
     # 1. Plot source MRIs
@@ -43,7 +45,10 @@ def make_summary_plot(
     for i, title in enumerate(("FLAIR", "T1", "T1 contrast", "T2")):
         ax = fig.add_subplot(gs[0, i])
         axes.append(ax)
-        ax_img = ax.imshow(images[i, wt_mask_middle], cmap="bone")
+        ax_img = ax.imshow(
+            get_arbitrary_element(images[i], *element_dim),
+            cmap="bone",
+        )
         ax.set_title(title, fontsize=18, weight="bold", y=-0.2)
         fig.colorbar(ax_img)
 
@@ -52,13 +57,23 @@ def make_summary_plot(
         fig.add_subplot(gs[1, 2:]),
         pred_masks,
     )
-    all_seg_ax_imgs: list[list] = [
-        [ax.imshow(mask[0, wt_mask_middle], cmap="summer") for ax, mask in axes_masks],
+    for title, (ax, _) in zip(
+        ["Target Mask", "Predicted Mask"],
+        axes_masks,
+        strict=True,
+    ):
+        ax.set_title(title, fontsize=18, weight="bold", y=-0.15)
+
+    all_seg_ax_imgs: list[list[matplotlib.image.AxesImage]] = [
+        [
+            ax.imshow(get_arbitrary_element(mask[0], *element_dim), cmap="summer")
+            for ax, mask in axes_masks
+        ],
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~mask[1, wt_mask_middle].bool(),
-                    mask[1, wt_mask_middle],
+                    ~get_arbitrary_element(mask[1], *element_dim).bool(),
+                    get_arbitrary_element(mask[1], *element_dim),
                 ),
                 cmap="rainbow",
                 alpha=0.6,
@@ -69,8 +84,8 @@ def make_summary_plot(
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~mask[2, wt_mask_middle].bool(),
-                    mask[2, wt_mask_middle],
+                    ~get_arbitrary_element(mask[2], *element_dim).bool(),
+                    get_arbitrary_element(mask[2], *element_dim),
                 ),
                 cmap="winter",
                 alpha=0.6,
@@ -101,7 +116,7 @@ def make_summary_plot(
             if len(seg_ax_imgs) > 0
         ),
     ]
-    plt.legend(
+    axes_masks[1][0].legend(
         handles=patches,
         bbox_to_anchor=(1.35, 0.2, 0.5, 0.5),
         loc="upper right",
@@ -109,11 +124,13 @@ def make_summary_plot(
         title_fontsize=18,
         framealpha=0.0,
     )
+
+    # 3. Wrap up with display of title
     for ax_ in (*axes, *(ax for ax, _ in axes_masks)):
         ax_.set_axis_off()
     scan_id = "" if scan_id is None else f"{scan_id} "
     plt.suptitle(
-        f"MRI Scan {scan_id}at Slice {wt_mask_middle} | Target Mask - Actual Mask",
+        f"MRI Scan {scan_id}at Slice {wt_mask_middle}",
         fontsize=20,
         weight="bold",
     )
@@ -134,8 +151,14 @@ def main() -> None:
     for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
         with torch.no_grad():
             preds = model(images)[0] > THRESHOLD
-        make_summary_plot(images=images[0], actual_masks=targets[0], pred_masks=preds)
-        _ = 0
+        for i in range(MASK_COUNT):
+            make_summary_plot(
+                images=images[0],
+                actual_masks=targets[0],
+                pred_masks=preds,
+                slice_dim=i,
+            )
+        _ = 0  # Debug here
 
 
 if __name__ == "__main__":

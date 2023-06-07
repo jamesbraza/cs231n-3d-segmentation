@@ -1,3 +1,4 @@
+from collections import deque
 from collections.abc import Iterable
 from typing import TypeVar
 
@@ -24,17 +25,26 @@ def print_model_summary(
     summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, num_slices, 240, 240))
 
 
-def get_mask_middle(mask: torch.Tensor, middle_dim: int = 0) -> int:
+def get_mask_middle(
+    mask: torch.Tensor,
+    middle_dim: int = 0,
+    window_size: int = 3,
+) -> int:
     """Get the middle slice of a binary MRI mask."""
     if len(mask.shape) != 3:
         raise ValueError(f"Unexpected mask shape {mask.shape}.")
-    first, last = None, None
+    first, last, prior_max = None, None, 0
     dims_for_max = tuple({0, 1, 2}.difference({middle_dim}))
+    window = deque(maxlen=window_size)
     for i, slice_has_mask in enumerate(mask.amax(dim=dims_for_max)):
-        if first is None and slice_has_mask > 0:
+        window.append(slice_has_mask)
+        if len(window) < window_size:  # Fill the window before analyzing
+            continue
+        if first is None and min(window) > 0:
             first = i
-        if first is not None and slice_has_mask == 0 and i > 0:
+        if first is not None and prior_max > 0 and max(window) == 0 and i > 0:
             last = i - 1
+        prior_max = max(window)
     return (first + last) // 2
 
 

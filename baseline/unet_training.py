@@ -207,6 +207,11 @@ def quantify_inference_time(
     dataloader: DataLoader,
     save_path: str = BASELINE_FOLDER / "inference_histogram",
 ) -> None:
+    
+    #for module_name, module in model.named_modules():
+    #    if isinstance(module, torch.nn.Conv3d):
+    #        print(list(module.named_parameters())) 
+
     model.eval()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
@@ -297,8 +302,14 @@ def visualize_results(model, dataloader: DataLoader, save_gif: bool = True) -> N
         break
 
 
-def visualize_metrics(model: UNet3d, dataloader: DataLoader) -> None:
+def visualize_metrics(model, dataloader: DataLoader) -> None:
+  
+    for module_name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d):
+            print(list(module.named_parameters()))
+   
     model.eval()
+    
     dice_scores_per_classes, iou_scores_per_classes = compute_scores_per_classes(
         model,
         dataloader,
@@ -371,62 +382,22 @@ def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None
     model = UNet3d(in_channels=4, n_classes=3, n_channels=24)
 
     #enable pruning 
-    parameters_to_prune = (
-        (model.conv.double_conv[0], 'weight'),
-        (model.conv.double_conv[1], 'weight'),
-        (model.conv.double_conv[3], 'weight'),
-        (model.conv.double_conv[4], 'weight'),
+    parameters_to_prune = []
+    for module_name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d):
+            parameters_to_prune.append((module, "weight"))
 
-        (model.enc1.encoder[1].double_conv[0], 'weight'),
-        (model.enc1.encoder[1].double_conv[1], 'weight'),
-        (model.enc1.encoder[1].double_conv[3], 'weight'),
-        (model.enc1.encoder[1].double_conv[4], 'weight'),
-
-        (model.enc2.encoder[1].double_conv[0], 'weight'),
-        (model.enc2.encoder[1].double_conv[1], 'weight'),
-        (model.enc2.encoder[1].double_conv[3], 'weight'),
-        (model.enc2.encoder[1].double_conv[4], 'weight'),
-
-        (model.enc3.encoder[1].double_conv[0], 'weight'),
-        (model.enc3.encoder[1].double_conv[1], 'weight'),
-        (model.enc3.encoder[1].double_conv[3], 'weight'),
-        (model.enc3.encoder[1].double_conv[4], 'weight'),
-
-        (model.enc4.encoder[1].double_conv[0], 'weight'),
-        (model.enc4.encoder[1].double_conv[1], 'weight'),
-        (model.enc4.encoder[1].double_conv[3], 'weight'),
-        (model.enc4.encoder[1].double_conv[4], 'weight'),
-
-        (model.dec1.conv.double_conv[0], 'weight'), 
-        (model.dec1.conv.double_conv[1], 'weight'), 
-        (model.dec1.conv.double_conv[3], 'weight'), 
-        (model.dec1.conv.double_conv[4], 'weight'), 
-
-        (model.dec2.conv.double_conv[0], 'weight'), 
-        (model.dec2.conv.double_conv[1], 'weight'), 
-        (model.dec2.conv.double_conv[3], 'weight'), 
-        (model.dec2.conv.double_conv[4], 'weight'), 
-        
-        (model.dec3.conv.double_conv[0], 'weight'), 
-        (model.dec3.conv.double_conv[1], 'weight'), 
-        (model.dec3.conv.double_conv[3], 'weight'), 
-        (model.dec3.conv.double_conv[4], 'weight'), 
-
-        (model.dec4.conv.double_conv[0], 'weight'), 
-        (model.dec4.conv.double_conv[1], 'weight'), 
-        (model.dec4.conv.double_conv[3], 'weight'), 
-        (model.dec4.conv.double_conv[4], 'weight'), 
-
-        (model.out.conv, 'weight'),
-    )
-    
     prune.global_unstructured(
         parameters_to_prune,
         pruning_method=prune.L1Unstructured,
-        amount=0.2,
+        amount=0.8,
     )
-    prune.remove(model.conv.double_conv[0], 'weight')
 
+    for module_name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d):
+            prune.remove(module, "weight")
+            #print(list(module.named_parameters()))
+    
     if torch.cuda.is_available():
         model = model.to("cuda")
     trainer = Trainer(
@@ -441,7 +412,7 @@ def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None
         path_to_csv=config.path_to_csv,
     )
     if config.pretrained_model_path is not None:
-        trainer.load_pretrained_model(config.pretrained_model_path)
+        #trainer.load_pretrained_model(config.pretrained_model_path)
 
         if config.train_logs_path is not None:
             train_logs = pd.read_csv(config.train_logs_path)
@@ -454,9 +425,14 @@ def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None
                 "train_jaccard",
             ].to_list()
             trainer.jaccard_scores["val"] = train_logs.loc[:, "val_jaccard"].to_list()
-
+    
     if not skip_training:
         trainer.run()
+    #for module_name, module in model.named_modules():
+    #    if isinstance(module, torch.nn.Conv3d):
+    #        print(list(module.named_parameters()))
+   
+
     visualize_post_training(model)
 
 

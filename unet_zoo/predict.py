@@ -1,15 +1,19 @@
+import itertools
 from typing import Any
 
 import matplotlib.axes
+import matplotlib.figure
 import matplotlib.gridspec as gridspec
 import matplotlib.image
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from pytorch3dunet.unet3d.model import UNet3D
+from pytorch3dunet.unet3d.metrics import MeanIoU
+from pytorch3dunet.unet3d.model import AbstractUNet, UNet3D
 from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.train import (
@@ -25,6 +29,7 @@ from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
 THRESHOLD = 0.33
+DEVICE = infer_device()
 
 
 def make_summary_plot(
@@ -33,7 +38,8 @@ def make_summary_plot(
     pred_masks: torch.Tensor,
     scan_id: int | None = None,
     slice_dim: int = 0,
-):
+) -> matplotlib.figure.Figure:
+    """Create a summary plot depicting images, targets, and predictions."""
     fig = plt.figure(figsize=(20, 10))
     axes: list[matplotlib.axes.Axes] = []
     wt_mask_middle = get_mask_middle(mask=actual_masks[0], middle_dim=slice_dim)
@@ -134,6 +140,81 @@ def make_summary_plot(
         fontsize=20,
         weight="bold",
     )
+    return fig
+
+
+def make_summary_plots(
+    model: AbstractUNet,
+    threshold: float | torch.Tensor = THRESHOLD,
+) -> None:
+    model.eval()
+    val_ds = get_train_val_scans_datasets()[1]
+    for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
+        with torch.no_grad():
+            preds = model(images)
+        for i in range(MASK_COUNT):
+            summary_fig = make_summary_plot(  # noqa: F841
+                images=images[0],
+                actual_masks=targets[0],
+                pred_masks=preds[0] >= threshold,
+                slice_dim=i,
+            )
+        _ = 0  # Debug here
+
+
+def sweep_thresholds(
+    model: AbstractUNet,
+    min_max: tuple[float, float] = (0.05, 0.95),
+    num: int = 19,
+    save_filename: str | None = None,
+) -> dict[tuple[float, float, float], float]:
+    """Sweep through possible binary thresholds to maximize IoU."""
+    model.eval()
+    calc_iou = MeanIoU()
+    threshold_to_mean_iou: dict[tuple[float, float, float], float] = {}
+    val_ds = get_train_val_scans_datasets()[1]
+    for thresholds in tqdm(
+        itertools.product(
+            np.linspace(*min_max, num),
+            np.linspace(*min_max, num),
+            np.linspace(*min_max, num),
+        ),
+        desc="trying thresholds",
+    ):
+        thresholds = torch.as_tensor(thresholds, device=DEVICE).reshape(3, 1, 1, 1)
+        ious: list[float] = []
+        for images, targets in tqdm(
+            DataLoader(val_ds, batch_size=BATCH_SIZE),
+            desc="compiling ious",
+        ):
+            with torch.no_grad():
+                preds = model(images)
+            ious.append(
+                calc_iou(input=preds >= thresholds, target=targets),
+            )
+        threshold_to_mean_iou[thresholds] = np.mean(ious)
+
+    if save_filename is not None:
+        # This could be done with less lines, but that requires more thought
+        storage_wt_tc_et, mean_ious = ([], [], []), []
+        for threshold_tuples, mean_iou in threshold_to_mean_iou.items():
+            mean_ious.append(mean_iou)
+            for storage, threshold in zip(
+                storage_wt_tc_et,
+                threshold_tuples,
+                strict=True,
+            ):
+                storage.append(threshold)
+
+        fig, ax = plt.subplots()
+        for x, label in zip(storage_wt_tc_et, ["WT", "TC", "ET"], strict=True):
+            ax.scatter(x, mean_ious, label=label)
+        ax.set_xlabel("Binary threshold")
+        ax.set_ylabel("Intersection over Union (IoU)")
+        ax.set_title("Discerning Best Binary Threshold")
+        fig.savefig(save_filename)
+
+    return threshold_to_mean_iou
 
 
 def main() -> None:
@@ -143,22 +224,12 @@ def main() -> None:
         final_sigmoid=True,
         f_maps=INITIAL_CONV_OUT_CHANNELS,
         num_groups=NUM_GROUPS,
-    ).to(device=infer_device())
+    ).to(device=DEVICE)
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
-    model.eval()
-    val_ds = get_train_val_scans_datasets()[1]
-    for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
-        with torch.no_grad():
-            preds = model(images)[0] > THRESHOLD
-        for i in range(MASK_COUNT):
-            make_summary_plot(
-                images=images[0],
-                actual_masks=targets[0],
-                pred_masks=preds,
-                slice_dim=i,
-            )
-        _ = 0  # Debug here
+    print(sweep_thresholds(model))
+    print(sweep_thresholds(model, min_max=(0.8, 1.0), num=21))
+    print(sweep_thresholds(model, min_max=(0.0, 0.2), num=21))
 
 
 if __name__ == "__main__":

@@ -159,14 +159,15 @@ def make_summary_plots(model: AbstractUNet) -> None:
 
 def sweep_thresholds(
     model: AbstractUNet,
-    min_max_step: tuple[float, float, float] = (0.1, 0.9, 0.1),
+    min_max: tuple[float, float] = (0.05, 0.95),
+    num: int = 19,
 ) -> dict[float, float]:
     """Sweep through possible binary thresholds to maximize IoU."""
     model.eval()
     calc_iou = MeanIoU()
     threshold_to_mean_iou: dict[float, float] = {}
     val_ds = get_train_val_scans_datasets()[1]
-    for threshold in tqdm(np.arange(*min_max_step), desc="trying thresholds"):
+    for threshold in tqdm(np.linspace(*min_max, num), desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
             DataLoader(val_ds, batch_size=BATCH_SIZE),

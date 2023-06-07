@@ -12,6 +12,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+import torch.nn.utils.prune as prune #pruning
 
 from baseline import BASELINE_FOLDER
 from baseline.config import GlobalConfig
@@ -366,7 +367,66 @@ def visualize_post_training(model: UNet3d) -> None:
 def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None:
     if config is None:
         config = GlobalConfig(pretrained_model_path=None)
+    
     model = UNet3d(in_channels=4, n_classes=3, n_channels=24)
+
+    #enable pruning 
+    parameters_to_prune = (
+        (model.conv.double_conv[0], 'weight'),
+        (model.conv.double_conv[1], 'weight'),
+        (model.conv.double_conv[3], 'weight'),
+        (model.conv.double_conv[4], 'weight'),
+
+        (model.enc1.encoder[1].double_conv[0], 'weight'),
+        (model.enc1.encoder[1].double_conv[1], 'weight'),
+        (model.enc1.encoder[1].double_conv[3], 'weight'),
+        (model.enc1.encoder[1].double_conv[4], 'weight'),
+
+        (model.enc2.encoder[1].double_conv[0], 'weight'),
+        (model.enc2.encoder[1].double_conv[1], 'weight'),
+        (model.enc2.encoder[1].double_conv[3], 'weight'),
+        (model.enc2.encoder[1].double_conv[4], 'weight'),
+
+        (model.enc3.encoder[1].double_conv[0], 'weight'),
+        (model.enc3.encoder[1].double_conv[1], 'weight'),
+        (model.enc3.encoder[1].double_conv[3], 'weight'),
+        (model.enc3.encoder[1].double_conv[4], 'weight'),
+
+        (model.enc4.encoder[1].double_conv[0], 'weight'),
+        (model.enc4.encoder[1].double_conv[1], 'weight'),
+        (model.enc4.encoder[1].double_conv[3], 'weight'),
+        (model.enc4.encoder[1].double_conv[4], 'weight'),
+
+        (model.dec1.conv.double_conv[0], 'weight'), 
+        (model.dec1.conv.double_conv[1], 'weight'), 
+        (model.dec1.conv.double_conv[3], 'weight'), 
+        (model.dec1.conv.double_conv[4], 'weight'), 
+
+        (model.dec2.conv.double_conv[0], 'weight'), 
+        (model.dec2.conv.double_conv[1], 'weight'), 
+        (model.dec2.conv.double_conv[3], 'weight'), 
+        (model.dec2.conv.double_conv[4], 'weight'), 
+        
+        (model.dec3.conv.double_conv[0], 'weight'), 
+        (model.dec3.conv.double_conv[1], 'weight'), 
+        (model.dec3.conv.double_conv[3], 'weight'), 
+        (model.dec3.conv.double_conv[4], 'weight'), 
+
+        (model.dec4.conv.double_conv[0], 'weight'), 
+        (model.dec4.conv.double_conv[1], 'weight'), 
+        (model.dec4.conv.double_conv[3], 'weight'), 
+        (model.dec4.conv.double_conv[4], 'weight'), 
+
+        (model.out.conv, 'weight'),
+    )
+    
+    prune.global_unstructured(
+        parameters_to_prune,
+        pruning_method=prune.L1Unstructured,
+        amount=0.2,
+    )
+    prune.remove(model.conv.double_conv[0], 'weight')
+
     if torch.cuda.is_available():
         model = model.to("cuda")
     trainer = Trainer(

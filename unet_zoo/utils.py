@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+
+import scipy
 import torch
 from torchinfo import summary
 
@@ -30,3 +33,28 @@ def get_mask_middle(mask: torch.Tensor) -> int:
         if first is not None and last is None and slice_has_mask == 0 and i > 0:
             last = i - 1
     return (first + last) // 2
+
+
+TOP_TO_SIDE = {"angle": -90.0, "axes": (0, 2)}, {"angle": -90.0, "axes": (1, 2)}
+TOP_TO_FRONT = ({"angle": -90.0, "axes": (0, 1)},)
+
+
+def rotate(
+    volume: torch.Tensor,
+    angle: float,
+    axes: tuple[int, int] = (1, 0),
+    **rotate_kwargs,
+) -> torch.Tensor:
+    """Wrap scipy.ndimage.rotate for rotating an MRI."""
+    orig_device = volume.device
+    return torch.as_tensor(
+        scipy.ndimage.rotate(volume.cpu(), angle, axes, **rotate_kwargs),
+        device=orig_device,
+    )
+
+
+def multi_rotate(volume: torch.Tensor, multi_kwargs: Iterable[dict]) -> torch.Tensor:
+    """Apply 0+ rotations in sequence."""
+    for kwargs in multi_kwargs:
+        volume = rotate(volume, **kwargs)
+    return volume

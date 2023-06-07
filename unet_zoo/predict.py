@@ -1,3 +1,4 @@
+import itertools
 from typing import Any
 
 import matplotlib.axes
@@ -28,6 +29,7 @@ from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
 THRESHOLD = 0.33
+DEVICE = infer_device()
 
 
 def make_summary_plot(
@@ -141,7 +143,10 @@ def make_summary_plot(
     return fig
 
 
-def make_summary_plots(model: AbstractUNet, threshold: float = THRESHOLD) -> None:
+def make_summary_plots(
+    model: AbstractUNet,
+    threshold: float | torch.Tensor = THRESHOLD,
+) -> None:
     model.eval()
     val_ds = get_train_val_scans_datasets()[1]
     for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
@@ -162,13 +167,21 @@ def sweep_thresholds(
     min_max: tuple[float, float] = (0.05, 0.95),
     num: int = 19,
     save_filename: str | None = None,
-) -> dict[float, float]:
+) -> dict[tuple[float, float, float], float]:
     """Sweep through possible binary thresholds to maximize IoU."""
     model.eval()
     calc_iou = MeanIoU()
-    threshold_to_mean_iou: dict[float, float] = {}
+    threshold_to_mean_iou: dict[tuple[float, float, float], float] = {}
     val_ds = get_train_val_scans_datasets()[1]
-    for threshold in tqdm(np.linspace(*min_max, num), desc="trying thresholds"):
+    for thresholds in tqdm(
+        itertools.product(
+            np.linspace(*min_max, num),
+            np.linspace(*min_max, num),
+            np.linspace(*min_max, num),
+        ),
+        desc="trying thresholds",
+    ):
+        thresholds = torch.as_tensor(thresholds, device=DEVICE).reshape(3, 1, 1, 1)
         ious: list[float] = []
         for images, targets in tqdm(
             DataLoader(val_ds, batch_size=BATCH_SIZE),
@@ -176,15 +189,30 @@ def sweep_thresholds(
         ):
             with torch.no_grad():
                 preds = model(images)
-            ious.append(calc_iou(input=preds >= threshold, target=targets))
-        threshold_to_mean_iou[threshold] = np.mean(ious)
+            ious.append(
+                calc_iou(input=preds >= thresholds, target=targets),
+            )
+        threshold_to_mean_iou[thresholds] = np.mean(ious)
 
     if save_filename is not None:
-        plt.scatter(*zip(*list(threshold_to_mean_iou.items()), strict=True))
-        plt.xlabel("Binary threshold")
-        plt.ylabel("Intersection over Union (IoU)")
-        plt.title("Discerning Best Binary Threshold")
-        plt.savefig(save_filename)
+        # This could be done with less lines, but that requires more thought
+        storage_wt_tc_et, mean_ious = ([], [], []), []
+        for threshold_tuples, mean_iou in threshold_to_mean_iou.items():
+            mean_ious.append(mean_iou)
+            for storage, threshold in zip(
+                storage_wt_tc_et,
+                threshold_tuples,
+                strict=True,
+            ):
+                storage.append(threshold)
+
+        fig, ax = plt.subplots()
+        for x, label in zip(storage_wt_tc_et, ["WT", "TC", "ET"], strict=True):
+            ax.scatter(x, mean_ious, label=label)
+        ax.set_xlabel("Binary threshold")
+        ax.set_ylabel("Intersection over Union (IoU)")
+        ax.set_title("Discerning Best Binary Threshold")
+        fig.savefig(save_filename)
 
     return threshold_to_mean_iou
 
@@ -196,7 +224,7 @@ def main() -> None:
         final_sigmoid=True,
         f_maps=INITIAL_CONV_OUT_CHANNELS,
         num_groups=NUM_GROUPS,
-    ).to(device=infer_device())
+    ).to(device=DEVICE)
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
     print(sweep_thresholds(model))

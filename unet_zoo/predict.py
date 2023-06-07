@@ -146,12 +146,12 @@ def make_summary_plots(model: AbstractUNet, threshold: float = THRESHOLD) -> Non
     val_ds = get_train_val_scans_datasets()[1]
     for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
         with torch.no_grad():
-            preds = model(images)[0] >= threshold
+            preds = model(images)
         for i in range(MASK_COUNT):
             summary_fig = make_summary_plot(  # noqa: F841
                 images=images[0],
                 actual_masks=targets[0],
-                pred_masks=preds,
+                pred_masks=preds[0] >= threshold,
                 slice_dim=i,
             )
         _ = 0  # Debug here
@@ -175,8 +175,8 @@ def sweep_thresholds(
             desc="compiling ious",
         ):
             with torch.no_grad():
-                preds = model(images) >= threshold
-            ious.append(calc_iou(input=preds, target=targets))
+                preds = model(images)
+            ious.append(calc_iou(input=preds >= threshold, target=targets))
         threshold_to_mean_iou[threshold] = np.mean(ious)
 
     if save_filename is not None:

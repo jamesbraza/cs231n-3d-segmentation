@@ -363,7 +363,7 @@ def visualize_post_training(model: UNet3d) -> None:
     visualize_results(model, val_dataloader)
 
 
-def main(config: GlobalConfig | None = None, skip_training: bool = False) -> None:
+def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None:
     if config is None:
         config = GlobalConfig(pretrained_model_path=None)
     model = UNet3d(in_channels=4, n_classes=3, n_channels=24)

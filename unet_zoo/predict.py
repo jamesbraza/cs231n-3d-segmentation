@@ -141,12 +141,12 @@ def make_summary_plot(
     return fig
 
 
-def make_summary_plots(model: AbstractUNet) -> None:
+def make_summary_plots(model: AbstractUNet, threshold: float = THRESHOLD) -> None:
     model.eval()
     val_ds = get_train_val_scans_datasets()[1]
     for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
         with torch.no_grad():
-            preds = model(images)[0] > THRESHOLD
+            preds = model(images)[0] >= threshold
         for i in range(MASK_COUNT):
             summary_fig = make_summary_plot(  # noqa: F841
                 images=images[0],

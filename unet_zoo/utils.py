@@ -33,7 +33,7 @@ def get_mask_middle(mask: torch.Tensor, middle_dim: int = 0) -> int:
     for i, slice_has_mask in enumerate(mask.amax(dim=dims_for_max)):
         if first is None and slice_has_mask > 0:
             first = i
-        if first is not None and last is None and slice_has_mask == 0 and i > 0:
+        if first is not None and slice_has_mask == 0 and i > 0:
             last = i - 1
     return (first + last) // 2
 

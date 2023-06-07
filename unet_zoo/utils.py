@@ -1,5 +1,7 @@
 from collections.abc import Iterable
+from typing import TypeVar
 
+import numpy as np
 import scipy
 import torch
 from torchinfo import summary
@@ -59,3 +61,18 @@ def multi_rotate(volume: torch.Tensor, multi_kwargs: Iterable[dict]) -> torch.Te
     for kwargs in multi_kwargs:
         volume = rotate(volume, **kwargs)
     return volume
+
+
+TArr = TypeVar("TArr", np.ndarray, torch.Tensor)
+
+
+def get_arbitrary_element(a: TArr, element: int, dim: int = 0) -> TArr:
+    """
+    Get the item at an element along a dim.
+
+    TODO: figure out how to do this in numpy or torch natively.
+
+    Something like a[:, ..., element, ..., :], where element's position is
+    controlled by dim.
+    """
+    return a[(*(slice(None) for _ in range(dim)), element)]

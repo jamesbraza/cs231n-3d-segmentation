@@ -161,6 +161,7 @@ def sweep_thresholds(
     model: AbstractUNet,
     min_max: tuple[float, float] = (0.05, 0.95),
     num: int = 19,
+    save_filename: str | None = None,
 ) -> dict[float, float]:
     """Sweep through possible binary thresholds to maximize IoU."""
     model.eval()
@@ -177,6 +178,14 @@ def sweep_thresholds(
                 preds = model(images) >= threshold
             ious.append(calc_iou(preds, targets))
         threshold_to_mean_iou[threshold] = np.mean(ious)
+
+    if save_filename is not None:
+        plt.scatter(*zip(*list(threshold_to_mean_iou.items()), strict=True))
+        plt.xlabel("Binary threshold")
+        plt.ylabel("Intersection over Union (IoU)")
+        plt.title("Discerning Best Binary Threshold")
+        plt.savefig(save_filename)
+
     return threshold_to_mean_iou
 
 

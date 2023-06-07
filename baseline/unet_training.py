@@ -203,11 +203,12 @@ class Trainer:
 
 
 def quantify_inference_time(
-    model,
+    model,prune_weight,
     dataloader: DataLoader,
-    save_path: str = BASELINE_FOLDER / "inference_histogram",
+    save_path: str = BASELINE_FOLDER,
 ) -> None:
     
+    save_path = save_path / str(prune_weight)
     #for module_name, module in model.named_modules():
     #    if isinstance(module, torch.nn.Conv3d):
     #        print(list(module.named_parameters())) 
@@ -233,8 +234,16 @@ def quantify_inference_time(
 
 
 def visualize_results(model, dataloader: DataLoader, save_gif: bool = True) -> None:
+    for module_name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d):
+            print(list(module.named_parameters()))
+   
+
     model.eval()
+    
+    print("finish model eval") 
     results = compute_results(model, dataloader, 0.33)
+    print("finish compute_results") 
     for id_, img, gt, prediction in zip(
         results["Id"][4:],
         results["image"][4:],
@@ -302,11 +311,11 @@ def visualize_results(model, dataloader: DataLoader, save_gif: bool = True) -> N
         break
 
 
-def visualize_metrics(model, dataloader: DataLoader) -> None:
+def visualize_metrics(model,prune_weight, dataloader: DataLoader) -> None:
   
-    for module_name, module in model.named_modules():
-        if isinstance(module, torch.nn.Conv3d):
-            print(list(module.named_parameters()))
+    #for module_name, module in model.named_modules():
+    #    if isinstance(module, torch.nn.Conv3d):
+    #        print(list(module.named_parameters()))
    
     model.eval()
     
@@ -346,14 +355,14 @@ def visualize_metrics(model, dataloader: DataLoader) -> None:
         ax.annotate(percentage, (x, y), fontsize=15, fontweight="bold")
 
     fig.savefig(
-        "result1.png",
+        "result" + str(prune_weight) +".png",
         format="png",
         pad_inches=0.2,
         transparent=False,
         bbox_inches="tight",
     )
     fig.savefig(
-        "result1.svg",
+        "result" + str(prune_weight) +".svg",
         format="svg",
         pad_inches=0.2,
         transparent=False,
@@ -361,7 +370,7 @@ def visualize_metrics(model, dataloader: DataLoader) -> None:
     )
 
 
-def visualize_post_training(model: UNet3d) -> None:
+def visualize_post_training(model: UNet3d, prune_weight) -> None:
     val_dataloader = get_dataloader(
         BratsDataset,
         BASELINE_FOLDER / "train_data.csv",
@@ -370,12 +379,17 @@ def visualize_post_training(model: UNet3d) -> None:
     )
     print(len(val_dataloader))
 
-    quantify_inference_time(model, val_dataloader)
-    visualize_metrics(model, val_dataloader)
-    visualize_results(model, val_dataloader)
+    
+    print("inference time run for ", prune_weight)
+    quantify_inference_time(model, prune_weight, val_dataloader)
+    print("metrics run for ")
+    visualize_metrics(model, prune_weight, val_dataloader)
+    
+    #print("results run")
+    #visualize_results(model, val_dataloader)
 
 
-def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None:
+def main(prune_weight, config: GlobalConfig | None = None, skip_training: bool = True) -> None:
     if config is None:
         config = GlobalConfig(pretrained_model_path=None)
     
@@ -390,7 +404,7 @@ def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None
     prune.global_unstructured(
         parameters_to_prune,
         pruning_method=prune.L1Unstructured,
-        amount=0.8,
+        amount=prune_weight,
     )
 
     for module_name, module in model.named_modules():
@@ -433,8 +447,11 @@ def main(config: GlobalConfig | None = None, skip_training: bool = True) -> None
     #        print(list(module.named_parameters()))
    
 
-    visualize_post_training(model)
+    visualize_post_training(model,prune_weight)
 
 
 if __name__ == "__main__":
-    main(default_config)
+    weights = [0.1, 0.2, 0.5, 0.8, 0.9]
+
+    for p_weight in weights:
+        main(p_weight,default_config, True)

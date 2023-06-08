@@ -15,18 +15,17 @@ import torch
 from matplotlib import colors
 from pytorch3dunet.unet3d.model import AbstractUNet, UNet2D
 from pytorch3dunet.unet3d.utils import load_checkpoint
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from data.loaders import ET, MASK_COUNT, TC, WT
+from data.loaders import ET, MASK_COUNT, TC, WT, BraTS2020MRISlicesDataset
 from unet_zoo import CHECKPOINTS_FOLDER, IMAGES_FOLDER
 from unet_zoo.metrics import MeanIoU
 from unet_zoo.train import (
-    BATCH_SIZE,
     INITIAL_CONV_OUT_CHANNELS,
     NUM_GROUPS,
     NUM_SCANS_PER_EXAMPLE,
     get_train_val_test_scans_datasets,
-    scans_to_slices_data_loader,
 )
 from unet_zoo.utils import get_mask_middle, infer_device
 
@@ -159,7 +158,7 @@ def make_summary_plots(
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
     for ex_i, (images, targets) in enumerate(
-        scans_to_slices_data_loader(test_ds),
+        DataLoader(BraTS2020MRISlicesDataset(scans_ds=test_ds)),
     ):
         with torch.no_grad():
             preds = model(images)
@@ -287,7 +286,7 @@ def sweep_thresholds(
     for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
-            scans_to_slices_data_loader(val_ds, batch_size=BATCH_SIZE),
+            DataLoader(BraTS2020MRISlicesDataset(scans_ds=val_ds)),
             desc="compiling ious",
         ):
             with torch.no_grad():

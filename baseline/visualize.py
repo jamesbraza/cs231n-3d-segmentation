@@ -118,7 +118,7 @@ plt.legend(
     loc=2,
     borderaxespad=0.4,
     fontsize="xx-large",
-    title="Mask Labels",
+    title="Mask Classes",
     title_fontsize=18,
     edgecolor="black",
     facecolor="#c5c6c7",

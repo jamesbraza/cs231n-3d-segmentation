@@ -174,7 +174,7 @@ def sweep_thresholds(
     model.eval()
     calc_iou = MeanIoU(binarize=mean_iou_binarize)
     threshold_to_mean_iou: dict[tuple[float, float, float], float] = {}
-    test_ds = get_train_val_test_scans_datasets()[2]
+    val_ds = get_train_val_test_scans_datasets()[1]
     if multi_channel:
         iterator = itertools.product(
             np.linspace(*min_max, num),
@@ -186,7 +186,7 @@ def sweep_thresholds(
     for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
-            DataLoader(test_ds, batch_size=BATCH_SIZE),
+            DataLoader(val_ds, batch_size=BATCH_SIZE),
             desc="compiling ious",
         ):
             with torch.no_grad():

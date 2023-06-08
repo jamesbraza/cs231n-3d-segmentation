@@ -215,8 +215,11 @@ def sweep_thresholds(
                 storage.append(threshold)
 
         fig, ax = plt.subplots()
-        for x, label in zip(storage_wt_tc_et, ["WT", "TC", "ET"], strict=True):
-            ax.scatter(x, mean_ious, label=label)
+        if multi_channel:
+            for x, label in zip(storage_wt_tc_et, ["WT", "TC", "ET"], strict=True):
+                ax.scatter(x, mean_ious, label=label)
+        else:
+            ax.scatter(*zip(*list(threshold_to_mean_iou.items()), strict=True))
         ax.set_xlabel("Binary threshold")
         ax.set_ylabel("Intersection over Union (IoU)")
         ax.set_title("Discerning Best Binary Threshold")

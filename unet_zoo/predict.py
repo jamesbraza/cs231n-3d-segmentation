@@ -195,7 +195,7 @@ def sweep_thresholds(
             if multi_channel:
                 thresholds_tensor = thresholds_tensor.reshape(
                     3,
-                    (1,) * len(preds.shape[2:]),
+                    *(1,) * len(preds.shape[2:]),
                 )
             ious.append(
                 calc_iou(input=preds >= thresholds_tensor, target=targets),

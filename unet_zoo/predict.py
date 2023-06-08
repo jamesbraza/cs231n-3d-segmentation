@@ -167,11 +167,12 @@ def sweep_thresholds(
     min_max: tuple[float, float] = (0.05, 0.95),
     num: int = 19,
     multi_channel: bool = True,
+    mean_iou_binarize: bool = False,
     save_filename: str | None = None,
 ) -> dict[tuple[float, float, float], float]:
     """Sweep through possible binary thresholds to maximize IoU."""
     model.eval()
-    calc_iou = MeanIoU()
+    calc_iou = MeanIoU(binarize=mean_iou_binarize)
     threshold_to_mean_iou: dict[tuple[float, float, float], float] = {}
     val_ds = get_train_val_scans_datasets()[1]
     if multi_channel:

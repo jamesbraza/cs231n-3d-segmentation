@@ -181,7 +181,6 @@ def sweep_thresholds(
         ),
         desc="trying thresholds",
     ):
-        thresholds = torch.as_tensor(thresholds, device=DEVICE).reshape(3, 1, 1, 1)
         ious: list[float] = []
         for images, targets in tqdm(
             DataLoader(val_ds, batch_size=BATCH_SIZE),
@@ -189,10 +188,14 @@ def sweep_thresholds(
         ):
             with torch.no_grad():
                 preds = model(images)
-            ious.append(
-                calc_iou(input=preds >= thresholds, target=targets),
+            thresholds_tensor = torch.as_tensor(thresholds, device=DEVICE).reshape(
+                3,
+                (1,) * len(preds.shape[2:]),
             )
-        threshold_to_mean_iou[thresholds] = np.mean(ious)
+            ious.append(
+                calc_iou(input=preds >= thresholds_tensor, target=targets),
+            )
+        threshold_to_mean_iou[thresholds] = np.mean(ious).item()
 
     if save_filename is not None:
         # This could be done with less lines, but that requires more thought

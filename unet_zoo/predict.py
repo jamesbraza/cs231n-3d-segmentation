@@ -9,13 +9,13 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from pytorch3dunet.unet3d.metrics import MeanIoU
 from pytorch3dunet.unet3d.model import AbstractUNet, UNet3D
 from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from unet_zoo import CHECKPOINTS_FOLDER
+from unet_zoo.metrics import MeanIoU
 from unet_zoo.train import (
     BATCH_SIZE,
     INITIAL_CONV_OUT_CHANNELS,
@@ -166,22 +166,24 @@ def sweep_thresholds(
     model: AbstractUNet,
     min_max: tuple[float, float] = (0.05, 0.95),
     num: int = 19,
+    multi_channel: bool = True,
+    mean_iou_binarize: bool = False,
     save_filename: str | None = None,
 ) -> dict[tuple[float, float, float], float]:
     """Sweep through possible binary thresholds to maximize IoU."""
     model.eval()
-    calc_iou = MeanIoU()
+    calc_iou = MeanIoU(binarize=mean_iou_binarize)
     threshold_to_mean_iou: dict[tuple[float, float, float], float] = {}
     val_ds = get_train_val_scans_datasets()[1]
-    for thresholds in tqdm(
-        itertools.product(
+    if multi_channel:
+        iterator = itertools.product(
             np.linspace(*min_max, num),
             np.linspace(*min_max, num),
             np.linspace(*min_max, num),
-        ),
-        desc="trying thresholds",
-    ):
-        thresholds = torch.as_tensor(thresholds, device=DEVICE).reshape(3, 1, 1, 1)
+        )
+    else:
+        iterator = np.linspace(*min_max, num)
+    for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
             DataLoader(val_ds, batch_size=BATCH_SIZE),
@@ -189,10 +191,16 @@ def sweep_thresholds(
         ):
             with torch.no_grad():
                 preds = model(images)
+            thresholds_tensor = torch.as_tensor(thresholds, device=DEVICE)
+            if multi_channel:
+                thresholds_tensor = thresholds_tensor.reshape(
+                    3,
+                    (1,) * len(preds.shape[2:]),
+                )
             ious.append(
-                calc_iou(input=preds >= thresholds, target=targets),
+                calc_iou(input=preds >= thresholds_tensor, target=targets),
             )
-        threshold_to_mean_iou[thresholds] = np.mean(ious)
+        threshold_to_mean_iou[thresholds] = np.mean(ious).item()
 
     if save_filename is not None:
         # This could be done with less lines, but that requires more thought

@@ -17,8 +17,7 @@ def print_model_summary(
     skip_slices: int = 0,
     batch_size: int = 1,
 ) -> None:
-    num_slices = 155 - 2 * skip_slices
-    summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, num_slices, 240, 240))
+    summary(model, input_size=(batch_size, NUM_SCANS_PER_EXAMPLE, 240, 240))
 
 
 def get_mask_middle(

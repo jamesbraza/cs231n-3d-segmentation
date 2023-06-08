@@ -1,5 +1,5 @@
 # For training checkpoints and logs
-checkpoints/
+checkpoints/logs/
 logs/
 
 # From various files saving images/GIFs

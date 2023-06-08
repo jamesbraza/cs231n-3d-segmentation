@@ -114,7 +114,7 @@ def make_summary_plot(
                 [
                     "Non-Enhancing\nTumor Core",
                     "Peritumoral Edema",
-                    "GD-Enhancing\nTumor",
+                    "Gd-Enhancing\nTumor",
                 ],
                 all_seg_ax_imgs,
                 strict=True,

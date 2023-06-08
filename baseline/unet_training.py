@@ -207,13 +207,12 @@ def quantify_inference_time(
     save_path: str = BASELINE_FOLDER / "inference_histogram",
 ) -> None:
     model.eval()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.no_grad():
         dts: list[float] = []
         for data in tqdm(dataloader, desc="inferences"):
             tic = time.perf_counter()
-            inputs = data["image"] 
-            inputs = inputs.to(device)
+            inputs = data["image"].to(device)
             probs = torch.sigmoid(model(inputs))  # noqa: F841
             toc = time.perf_counter()
             dts.append(toc - tic)

@@ -93,12 +93,12 @@ l1 = ax4.imshow(
     cmap="summer",
 )
 l2 = ax4.imshow(
-    np.ma.masked_where(mask_TC[:, :, 65] is False, mask_TC[:, :, 65]),
+    np.ma.masked_where(mask_TC[:, :, 65] == 0, mask_TC[:, :, 65]),
     cmap="rainbow",
     alpha=0.6,
 )
 l3 = ax4.imshow(
-    np.ma.masked_where(mask_ET[:, :, 65] is False, mask_ET[:, :, 65]),
+    np.ma.masked_where(mask_ET[:, :, 65] == 0, mask_ET[:, :, 65]),
     cmap="winter",
     alpha=0.6,
 )
@@ -106,7 +106,7 @@ ax4.set_title("", fontsize=20, weight="bold", y=-0.1)
 
 _ = [ax.set_axis_off() for ax in [ax0, ax1, ax2, ax3, ax4]]
 
-colors = [im.cmap(im.norm(1)) for im in [l1, l2, l3]]
+colors = [im.cmap(im.norm(value=1)) for im in [l1, l2, l3]]
 labels = ["Non-Enhancing Tumor Core", "Peritumoral Edema ", "Gd-Enhancing Tumor"]
 patches = [
     mpatches.Patch(color=colors[i], label=f"{labels[i]}") for i in range(len(labels))

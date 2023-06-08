@@ -287,15 +287,13 @@ def sweep_thresholds(
     for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
-            scans_to_slices_data_loader(
-                val_ds,
-                batch_size=BATCH_SIZE,
-                insert_z_dim=False,
-            ),
+            scans_to_slices_data_loader(val_ds, batch_size=BATCH_SIZE),
             desc="compiling ious",
         ):
             with torch.no_grad():
-                preds = model(images)
+                # Emulating singleton Z dimension behavior of pytorch-3dunet's
+                # Trainer, as 5-D is required to use their MeanIoU
+                preds = model(images.squeeze(dim=-3)).unsqueeze(dim=-3)
             thresholds_tensor = torch.as_tensor(thresholds, device=DEVICE)
             if multi_channel:
                 thresholds_tensor = thresholds_tensor.reshape(

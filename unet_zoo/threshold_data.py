@@ -1,4 +1,5 @@
-"""Data collected for thresholding experiment."""
+"""Thresholding experiment data from predict.py's sweep_thresholds."""
+
 import matplotlib.pyplot as plt
 
 SWEEP_1_2D = {

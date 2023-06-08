@@ -1,6 +1,7 @@
+import time
 import itertools
 from typing import Any
-
+import math
 import matplotlib.axes
 import matplotlib.figure
 import matplotlib.gridspec as gridspec
@@ -14,8 +15,10 @@ from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import torch.nn.utils.prune as prune #pruning
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.metrics import MeanIoU
+from pytorch3dunet.unet3d.metrics import DiceCoefficient
 from unet_zoo.train import (
     BATCH_SIZE,
     INITIAL_CONV_OUT_CHANNELS,
@@ -27,9 +30,22 @@ from unet_zoo.train import (
 from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
-BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
-THRESHOLD = 0.33
+BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint_3d.pytorch"
+THRESHOLD = 0.45
 DEVICE = infer_device()
+
+def determine_model_size_pre_pruning(model):
+    size = 0
+    for param in model.parameters():
+        size += param.nelement() * param.element_size()
+    print('\n')
+    print(f'Model size pre-pruning: {size}')
+    n_params = sum(
+	param.numel() for param in model.parameters()
+    )
+    print("Number parameters pre-pruning: ", n_params)
+    return n_params
+#def determine_model_size_post_pruning(model): 
 
 
 def make_summary_plot(
@@ -228,7 +244,7 @@ def sweep_thresholds(
     return threshold_to_mean_iou
 
 
-def main() -> None:
+def main(prune_weight) -> None:
     model = UNet3D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
@@ -237,11 +253,65 @@ def main() -> None:
         num_groups=NUM_GROUPS,
     ).to(device=DEVICE)
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
+    
+    total_params = determine_model_size_pre_pruning(model)
 
-    print(sweep_thresholds(model))
-    print(sweep_thresholds(model, min_max=(0.8, 1.0), num=21))
-    print(sweep_thresholds(model, min_max=(0.0, 0.2), num=21))
+    print("Prune: ", prune_weight) 
+    #enable pruning
+    convlayers = [] 
+    parameters_to_prune = []
+    weights = 0
+    for module_name, module in model.named_modules():
+        #weights += torch.numel(module.weight)
+        #weights += torch.numel(module.bias)
+        if isinstance(module, torch.nn.Conv3d):
+            weights += torch.numel(module.weight)
+            parameters_to_prune.append((module, "weight"))
 
+    pruned_params = total_params - math.ceil(weights * prune_weight)
+    print("Pruned parameters: ", pruned_params)
+
+    prune.global_unstructured(
+        parameters_to_prune,
+        pruning_method=prune.L1Unstructured,
+        amount=prune_weight,
+    )
+
+    for module_name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d):
+            prune.remove(module, "weight")
+            #print(list(module.named_parameters()))
+            
+    model.eval()
+    val_ds = get_train_val_scans_datasets()[1]
+    ious = []
+    dices = []
+    inf_times = []
+    for images, targets in tqdm(DataLoader(val_ds, batch_size=BATCH_SIZE), desc='validation example'):
+        with torch.no_grad():
+            start = time.perf_counter()
+            preds = model(images) >= THRESHOLD
+            stop = time.perf_counter()
+        inf_times.append(stop - start)
+        ious.append(MeanIoU()(preds, targets) * 100)
+        ret_dice = DiceCoefficient()(preds, targets) * 100 
+        ret_dice = ret_dice.to("cpu")
+        dices.append(ret_dice)
+
+    #print(ious) 
+    f_iou = np.mean(ious)
+    f_dice = np.mean(dices)
+    f_inf_time = np.mean(inf_times)
+    print("Mean IOU: ", f_iou)
+    print("Mean Dice: ", f_dice)
+    print("Mean Inference Time: ", f_inf_time)  
+    #print(sweep_thresholds(model))
+    #print(sweep_thresholds(model, min_max=(0.8, 1.0), num=21))
+    #print(sweep_thresholds(model, min_max=(0.0, 0.2), num=21))
 
 if __name__ == "__main__":
-    main()
+
+    pweights = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.91, 0.92, 0.95, 0.97, 0.98, 0.99]
+    for prune_weight in pweights:
+        main(prune_weight)
+    #main(0.1)

@@ -50,6 +50,18 @@ def get_train_val_test_scans_datasets(
     )
 
 
+def scans_to_slices_data_loader(
+    ds: BraTS2020MRIScansDataset,
+    batch_size: int = BATCH_SIZE,
+    insert_z_dim: bool = True,
+) -> DataLoader:
+    """Convert a BraTS MRI scans dataset into a data loader of MRI slices."""
+    return DataLoader(
+        BraTS2020MRISlicesDataset(scans_ds=ds, insert_z_dim=insert_z_dim),
+        batch_size=batch_size,
+    )
+
+
 def main() -> None:
     model = UNet2D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
@@ -61,7 +73,7 @@ def main() -> None:
     # print_model_summary(model)
 
     data_loaders: dict[Literal["train", "val", "test"], DataLoader] = {
-        name: DataLoader(BraTS2020MRISlicesDataset(scans_ds=ds), batch_size=BATCH_SIZE)
+        name: scans_to_slices_data_loader(ds)
         for name, ds in zip(
             ("train", "val", "test"),
             get_train_val_test_scans_datasets(),

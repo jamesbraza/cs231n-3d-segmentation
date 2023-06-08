@@ -15,7 +15,6 @@ import torch
 from matplotlib import colors
 from pytorch3dunet.unet3d.model import AbstractUNet, UNet2D
 from pytorch3dunet.unet3d.utils import load_checkpoint
-from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from data.loaders import ET, MASK_COUNT, TC, WT
@@ -27,6 +26,7 @@ from unet_zoo.train import (
     NUM_GROUPS,
     NUM_SCANS_PER_EXAMPLE,
     get_train_val_test_scans_datasets,
+    scans_to_slices_data_loader,
 )
 from unet_zoo.utils import get_mask_middle, infer_device
 
@@ -158,7 +158,9 @@ def make_summary_plots(
     os.makedirs(IMAGES_FOLDER, exist_ok=True)
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
+    for ex_i, (images, targets) in enumerate(
+        scans_to_slices_data_loader(test_ds),
+    ):
         with torch.no_grad():
             preds = model(images)
         for mask_i in range(MASK_COUNT):
@@ -285,7 +287,11 @@ def sweep_thresholds(
     for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
-            DataLoader(val_ds, batch_size=BATCH_SIZE),
+            scans_to_slices_data_loader(
+                val_ds,
+                batch_size=BATCH_SIZE,
+                insert_z_dim=False,
+            ),
             desc="compiling ious",
         ):
             with torch.no_grad():

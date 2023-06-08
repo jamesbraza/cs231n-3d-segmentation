@@ -22,13 +22,13 @@ from unet_zoo.train import (
     MASK_COUNT,
     NUM_GROUPS,
     NUM_SCANS_PER_EXAMPLE,
-    get_train_val_scans_datasets,
+    get_train_val_test_scans_datasets,
 )
 from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
-THRESHOLD = 0.33
+THRESHOLD = 0.45
 DEVICE = infer_device()
 
 
@@ -148,8 +148,8 @@ def make_summary_plots(
     threshold: float | torch.Tensor = THRESHOLD,
 ) -> None:
     model.eval()
-    val_ds = get_train_val_scans_datasets()[1]
-    for images, targets in DataLoader(val_ds, batch_size=BATCH_SIZE):
+    test_ds = get_train_val_test_scans_datasets()[2]
+    for images, targets in DataLoader(test_ds, batch_size=BATCH_SIZE):
         with torch.no_grad():
             preds = model(images)
         for i in range(MASK_COUNT):
@@ -174,7 +174,7 @@ def sweep_thresholds(
     model.eval()
     calc_iou = MeanIoU(binarize=mean_iou_binarize)
     threshold_to_mean_iou: dict[tuple[float, float, float], float] = {}
-    val_ds = get_train_val_scans_datasets()[1]
+    test_ds = get_train_val_test_scans_datasets()[2]
     if multi_channel:
         iterator = itertools.product(
             np.linspace(*min_max, num),
@@ -186,7 +186,7 @@ def sweep_thresholds(
     for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
         for images, targets in tqdm(
-            DataLoader(val_ds, batch_size=BATCH_SIZE),
+            DataLoader(test_ds, batch_size=BATCH_SIZE),
             desc="compiling ious",
         ):
             with torch.no_grad():

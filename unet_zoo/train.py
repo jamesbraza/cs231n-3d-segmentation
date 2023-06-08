@@ -26,10 +26,14 @@ NUM_EPOCHS = 10
 GENERATOR = make_generator(42)
 
 
-def get_train_val_scans_datasets(
+def get_train_val_test_scans_datasets(
     skip_slices: int = SKIP_SLICES,
     generator: torch.Generator | None = GENERATOR,
-) -> tuple[BraTS2020MRIScansDataset, BraTS2020MRIScansDataset]:
+) -> tuple[
+    BraTS2020MRIScansDataset,
+    BraTS2020MRIScansDataset,
+    BraTS2020MRIScansDataset,
+]:
     train_val_ds = BraTS2020MRIScansDataset(
         device=infer_device(),
         skip_slices=skip_slices,
@@ -40,7 +44,7 @@ def get_train_val_scans_datasets(
     return tuple(
         torch.utils.data.random_split(
             train_val_ds,
-            lengths=(0.9, 0.1),
+            lengths=(0.8, 0.1, 0.1),
             generator=generator,
         ),
     )
@@ -56,11 +60,11 @@ def main() -> None:
     ).to(device=infer_device())
     # print_model_summary(model)
 
-    data_loaders: dict[Literal["train", "val"], DataLoader] = {
-        name: DataLoader(BraTS2020MRISlicesDataset(scans_ds=ds), batch_size=BATCH_SIZE)
+    data_loaders: dict[Literal["train", "val", "test"], DataLoader] = {
+        name: DataLoader(BraTS2020MRISlicesDataset(scans_ds=ds))
         for name, ds in zip(
-            ("train", "val"),
-            get_train_val_scans_datasets(),
+            ("train", "val", "test"),
+            get_train_val_test_scans_datasets(),
             strict=True,
         )
     }

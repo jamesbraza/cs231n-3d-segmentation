@@ -21,5 +21,5 @@ class MeanIoU(_MeanIoU):
         n_classes: int,
     ) -> torch.Tensor:
         if self.binarize:
-            return input
-        return super()._binarize_predictions(input, n_classes)
+            return super()._binarize_predictions(input, n_classes)
+        return input

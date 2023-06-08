@@ -244,7 +244,7 @@ def sweep_thresholds(
     return threshold_to_mean_iou
 
 
-def main(prune_weight) -> None:
+def main(prune_weight,i) -> None:
     model = UNet3D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
@@ -257,37 +257,31 @@ def main(prune_weight) -> None:
     total_params = determine_model_size_pre_pruning(model)
 
     print("Prune: ", prune_weight) 
+    print("Layer: ", i) 
     #enable pruning
     convlayers = [] 
     parameters_to_prune = []
     weights = 0
+    layers_i = 0
     for module_name, module in model.named_modules():
-        #weights += torch.numel(module.weight)
-        #weights += torch.numel(module.bias)
         if isinstance(module, torch.nn.Conv3d):
-            weights += torch.numel(module.weight)
-            parameters_to_prune.append((module, "weight"))
+            if layers_i == i:
+                weights += torch.numel(module.weight)
+                prune.random_unstructured(module, name="weight",amount=prune_weight)
+                prune.remove(module,"weight")
+                #print(list(module.named_parameters()))
+            layers_i += 1 
 
     pruned_params = total_params - math.ceil(weights * prune_weight)
     print("Pruned parameters: ", pruned_params)
-
-    prune.global_unstructured(
-        parameters_to_prune,
-        pruning_method=prune.L1Unstructured,
-        amount=prune_weight,
-    )
-
-    for module_name, module in model.named_modules():
-        if isinstance(module, torch.nn.Conv3d):
-            prune.remove(module, "weight")
-            #print(list(module.named_parameters()))
+    print("Number layers: ", layers_i)
             
     model.eval()
     val_ds = get_train_val_scans_datasets()[1]
     ious = []
     dices = []
     inf_times = []
-    for images, targets in tqdm(DataLoader(val_ds, batch_size=BATCH_SIZE), desc='validation example'):
+    for images, targets in tqdm(DataLoader(val_ds, batch_size=BATCH_SIZE), desc="perf calc"):
         with torch.no_grad():
             start = time.perf_counter()
             preds = model(images) >= THRESHOLD
@@ -311,7 +305,7 @@ def main(prune_weight) -> None:
 
 if __name__ == "__main__":
 
-    pweights = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.91, 0.92, 0.95, 0.97, 0.98, 0.99]
-    for prune_weight in pweights:
-        main(prune_weight)
-    #main(0.1)
+    prune_weights = [0.25, 0.5, 0.75]
+    for p in prune_weights:
+        for i in range(15):
+            main(p, i)

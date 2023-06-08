@@ -13,7 +13,7 @@ import numpy as np
 import rich.status
 import torch
 from matplotlib import colors
-from pytorch3dunet.unet3d.model import AbstractUNet, UNet3D
+from pytorch3dunet.unet3d.model import AbstractUNet, UNet2D
 from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -331,7 +331,7 @@ def sweep_thresholds(
 
 
 def main() -> None:
-    model = UNet3D(
+    model = UNet2D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
         final_sigmoid=True,

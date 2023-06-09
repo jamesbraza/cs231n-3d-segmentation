@@ -149,9 +149,7 @@ def make_summary_plots(
 ) -> None:
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    for ex_i, (images, targets) in enumerate(
-        DataLoader(test_ds, batch_size=BATCH_SIZE),
-    ):
+    for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
             preds = model(images)
         for mask_i in range(MASK_COUNT):
@@ -162,7 +160,7 @@ def make_summary_plots(
                 slice_dim=mask_i,
             )
             summary_fig.savefig(
-                IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_class{mask_i}.png",
+                IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_angle{mask_i}.png",
             )
         _ = 0  # Debug here
 

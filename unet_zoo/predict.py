@@ -32,7 +32,7 @@ THRESHOLD = 0.25  # Tuned parameter
 DEVICE = infer_device()
 
 
-def make_summary_plot(
+def make_summary_slice_plot(
     images: torch.Tensor,
     actual_masks: torch.Tensor,
     pred_masks: torch.Tensor,
@@ -155,7 +155,7 @@ def make_summary_plots(
         with torch.no_grad():
             preds = model(images)
         for mask_i in range(MASK_COUNT):
-            summary_fig = make_summary_plot(
+            summary_fig = make_summary_slice_plot(
                 images=images[0],
                 actual_masks=targets[0],
                 pred_masks=preds[0] >= threshold,

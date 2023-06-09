@@ -1,6 +1,9 @@
 """Thresholding experiment data from predict.py's sweep_thresholds."""
 
+import itertools
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 SWEEP_1_2D_SINGLE = {
     0.05: 0.18177488446235657,
@@ -60,17 +63,43 @@ SWEEP_3D_SINGLE = {
     0.95: 0.314601868391037,
 }
 
-max_2d_single_threshold = max(SWEEP_2D_SINGLE, key=SWEEP_2D_SINGLE.get)
-max_3d_single_threshold = max(SWEEP_3D_SINGLE, key=SWEEP_3D_SINGLE.get)
+
 fig, ax = plt.subplots()
-ax.scatter(*zip(*list(SWEEP_2D_SINGLE.items()), strict=True), label="2-D")
-ax.scatter(*zip(*list(SWEEP_3D_SINGLE.items()), strict=True), label="3-D")
+sweep_2d_single_ax = ax.scatter(
+    *zip(*list(SWEEP_2D_SINGLE.items()), strict=True),
+    label="2-D",
+)
+argmax_2d_single_threshold = max(SWEEP_2D_SINGLE, key=SWEEP_2D_SINGLE.get)
+max_2d_single_threshold = SWEEP_2D_SINGLE[argmax_2d_single_threshold]
+coordinate = argmax_2d_single_threshold, max_2d_single_threshold
+ax.annotate(
+    str(tuple(round(x, 2) for x in coordinate)),
+    xy=coordinate,
+    color=sweep_2d_single_ax.get_facecolor(),
+    xytext=(-10, 6),
+    textcoords="offset points",
+)
+sweep_3d_single_ax = ax.scatter(
+    *zip(*list(SWEEP_3D_SINGLE.items()), strict=True),
+    label="3-D",
+)
+argmax_3d_single_threshold = max(SWEEP_3D_SINGLE, key=SWEEP_3D_SINGLE.get)
+max_3d_single_threshold = SWEEP_3D_SINGLE[argmax_3d_single_threshold]
+coordinate = argmax_3d_single_threshold, max_3d_single_threshold
+ax.annotate(
+    str(tuple(round(x, 2) for x in coordinate)),
+    xy=coordinate,
+    color=sweep_3d_single_ax.get_facecolor(),
+    xytext=(-10, 6),
+    textcoords="offset points",
+)
 ax.legend()
 ax.set_xlim(left=0, right=1)
-ax.set_xlabel("Binary threshold")
-ax.set_ylim(bottom=0)
+ax.set_xlabel("Binary Threshold")
+ax.set_ylim(bottom=0, top=0.61)
 ax.set_ylabel("Intersection over Union (IoU)")
 ax.set_title("UNet2D and UNet3D Discerning Single Binary Threshold")
+fig.tight_layout()
 fig.savefig("unet_single_threshold_sweep.png")
 
 SWEEP_3D_MULTI = {
@@ -432,16 +461,62 @@ fig, ax = plt.subplots()
 for x, label in zip(storage_wt_tc_et, ["WT", "TC", "ET"], strict=True):
     ax.scatter(x, mean_ious, label=label)
 ax.set_xlim(left=0, right=1)
-ax.set_xlabel("Binary threshold")
+ax.set_xlabel("Binary Threshold")
 ax.set_ylabel("Intersection over Union (IoU)")
 ax.set_title("UNet3D Discerning Per-Channel Binary Threshold")
 ax.legend()
 fig.savefig("unet3d_multi_threshold_sweep_points.png")
 
-# fig, ax = plt.subplots()
-# ax.boxplot(data)
-# ax.set_xlim(left=0, right=1)
-# ax.set_xlabel("Binary threshold")
-# ax.set_ylabel("Intersection over Union (IoU)")
-# ax.set_title("UNet3D Discerning Discerning Per-Channel Binary Threshold")
-# fig.savefig("unet3d_multi_threshold_sweep_boxplot.png")
+bin_edges: tuple[tuple[float, float], ...] = tuple(
+    (i / 100, (i + 10) / 100) for i in range(15, 85, 10)
+)
+bin_centers: tuple[float, ...] = tuple(
+    (lower + upper) / 2 for lower, upper in bin_edges
+)
+gap_fraction = 0.8
+bin_width = np.fromiter(
+    (gap_fraction * (c2 - c1) for c1, c2 in itertools.pairwise(bin_centers)),
+    dtype=float,
+).mean()
+storage_wt_tc_et = tuple(tuple([] for _ in range(len(bin_edges))) for _ in range(3))
+for threshold_tuples, mean_iou in SWEEP_3D_MULTI.items():
+    for storage, threshold in zip(
+        storage_wt_tc_et,
+        threshold_tuples,
+        strict=True,
+    ):
+        for i, (lower_edge, upper_edge) in enumerate(bin_edges):
+            if lower_edge < threshold < upper_edge:
+                storage[i].append(mean_iou)
+                break
+binned_wt, binned_tc, binned_et = storage_wt_tc_et
+max_wt_median = np.fromiter((np.median(x) for x in binned_wt), dtype=float).max()
+max_tc_median = np.fromiter((np.median(x) for x in binned_tc), dtype=float).max()
+max_et_median = np.fromiter((np.median(x) for x in binned_et), dtype=float).max()
+
+fig, ax = plt.subplots()
+num_plots = 3.2
+width = gap_fraction * bin_width / num_plots
+ax.boxplot(
+    binned_wt,
+    positions=tuple(c - bin_width / num_plots for c in bin_centers),
+    widths=width,
+    manage_ticks=False,
+)
+ax.boxplot(
+    binned_tc,
+    positions=tuple(c for c in bin_centers),
+    widths=width,
+    manage_ticks=False,
+)
+ax.boxplot(
+    binned_et,
+    positions=tuple(c + bin_width / num_plots for c in bin_centers),
+    widths=width,
+    manage_ticks=False,
+)
+ax.set_xlim(0.15, 0.85)
+ax.set_xlabel("Binary Threshold")
+ax.set_ylabel("Intersection over Union (IoU)")
+ax.set_title("UNet3D Discerning Discerning Per-Channel Binary Threshold")
+fig.savefig("unet3d_multi_threshold_sweep_boxplot.png")

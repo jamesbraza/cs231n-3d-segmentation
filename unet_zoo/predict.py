@@ -14,7 +14,7 @@ from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from unet_zoo import CHECKPOINTS_FOLDER
+from unet_zoo import CHECKPOINTS_FOLDER, IMAGES_FOLDER
 from unet_zoo.metrics import MeanIoU
 from unet_zoo.train import (
     BATCH_SIZE,
@@ -149,15 +149,20 @@ def make_summary_plots(
 ) -> None:
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    for images, targets in DataLoader(test_ds, batch_size=BATCH_SIZE):
+    for ex_i, (images, targets) in enumerate(
+        DataLoader(test_ds, batch_size=BATCH_SIZE),
+    ):
         with torch.no_grad():
             preds = model(images)
-        for i in range(MASK_COUNT):
-            summary_fig = make_summary_plot(  # noqa: F841
+        for mask_i in range(MASK_COUNT):
+            summary_fig = make_summary_plot(
                 images=images[0],
                 actual_masks=targets[0],
                 pred_masks=preds[0] >= threshold,
-                slice_dim=i,
+                slice_dim=mask_i,
+            )
+            summary_fig.savefig(
+                IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_class{mask_i}.png",
             )
         _ = 0  # Debug here
 

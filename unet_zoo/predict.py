@@ -244,7 +244,7 @@ def sweep_thresholds(
     return threshold_to_mean_iou
 
 
-def main(prune_weight,i) -> None:
+def main(prune_weight,i,j) -> None:
     model = UNet3D(
         in_channels=NUM_SCANS_PER_EXAMPLE,
         out_channels=MASK_COUNT,
@@ -257,7 +257,7 @@ def main(prune_weight,i) -> None:
     total_params = determine_model_size_pre_pruning(model)
 
     print("Prune: ", prune_weight) 
-    print("Layer: ", i) 
+    print("Layers: ", i, j) 
     #enable pruning
     convlayers = [] 
     parameters_to_prune = []
@@ -265,7 +265,7 @@ def main(prune_weight,i) -> None:
     layers_i = 0
     for module_name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv3d):
-            if layers_i == i:
+            if layers_i == i or layers_i == j:
                 weights += torch.numel(module.weight)
                 prune.random_unstructured(module, name="weight",amount=prune_weight)
                 prune.remove(module,"weight")
@@ -296,6 +296,10 @@ def main(prune_weight,i) -> None:
     f_iou = np.mean(ious)
     f_dice = np.mean(dices)
     f_inf_time = np.mean(inf_times)
+    #IOU.append(f_iou)
+    #DICE.append(f_dice) 
+    #INF_TIME.append(f_inf_time)
+    #PARAM.append(pruned_params)
     print("Mean IOU: ", f_iou)
     print("Mean Dice: ", f_dice)
     print("Mean Inference Time: ", f_inf_time)  
@@ -305,7 +309,28 @@ def main(prune_weight,i) -> None:
 
 if __name__ == "__main__":
 
+    #IOU = [] 
+    #DICE = [] 
+    #INF_TIME = [] 
+    #PARAMETERS = []
+    #X = np.range(7)
     prune_weights = [0.25, 0.5, 0.75]
     for p in prune_weights:
-        for i in range(15):
-            main(p, i)
+        #iou = [] 
+        #dice = [] 
+        #inf_time = []
+        #p_aram = []
+        for i in range(0,14,2):
+            main(p, i, i+1)#, iou, dice, inf_time)
+"""     
+        IOU.append(iou)
+        DICE.append(dice) 
+        INF_TIME.append(inf_time)
+        PARAMETERS.append(p_aram)
+    plt.plot(X, IOU[0], color='r', label='0.25')
+    plt.plot(X, IOU[1], color='g', label='0.5') 
+    plt.plot(X, IOU[2], color='b', label='0.75')
+
+    plt.xlabel("Encoder/Decoder Layers")
+    plt.ylabel("IOU")
+    plt.title("IOU o")"""

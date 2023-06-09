@@ -28,7 +28,7 @@ from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
-THRESHOLD = 0.45
+THRESHOLD = 0.25  # Tuned parameter
 DEVICE = infer_device()
 
 
@@ -238,9 +238,7 @@ def main() -> None:
     ).to(device=DEVICE)
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
-    print(sweep_thresholds(model))
-    print(sweep_thresholds(model, min_max=(0.8, 1.0), num=21))
-    print(sweep_thresholds(model, min_max=(0.0, 0.2), num=21))
+    make_summary_plots(model)
 
 
 if __name__ == "__main__":

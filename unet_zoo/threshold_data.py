@@ -490,9 +490,12 @@ for threshold_tuples, mean_iou in SWEEP_3D_MULTI.items():
                 storage[i].append(mean_iou)
                 break
 binned_wt, binned_tc, binned_et = storage_wt_tc_et
-max_wt_median = np.fromiter((np.median(x) for x in binned_wt), dtype=float).max()
-max_tc_median = np.fromiter((np.median(x) for x in binned_tc), dtype=float).max()
-max_et_median = np.fromiter((np.median(x) for x in binned_et), dtype=float).max()
+wt_medians = np.fromiter((np.median(x) for x in binned_wt), dtype=float)
+tc_medians = np.fromiter((np.median(x) for x in binned_tc), dtype=float)
+et_medians = np.fromiter((np.median(x) for x in binned_et), dtype=float)
+argmax_wt_median, max_wt_median = wt_medians.argmax(), wt_medians.max()
+argmax_tc_median, max_tc_median = tc_medians.argmax(), tc_medians.max()
+argmax_et_median, max_et_median = et_medians.argmax(), et_medians.max()
 
 fig, ax = plt.subplots()
 num_plots = 3.2

@@ -1,4 +1,5 @@
 import itertools
+import os
 from typing import Any
 
 import matplotlib.axes
@@ -24,7 +25,7 @@ from unet_zoo.train import (
     NUM_SCANS_PER_EXAMPLE,
     get_train_val_test_scans_datasets,
 )
-from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
+from unet_zoo.utils import get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
@@ -40,6 +41,12 @@ def make_summary_slice_plot(
     slice_dim: int = 0,
 ) -> matplotlib.figure.Figure:
     """Create a summary plot depicting images, targets, and predictions."""
+    # Take off GPU, if not already there
+    images, actual_masks, pred_masks = (
+        images.cpu(),
+        actual_masks.cpu(),
+        pred_masks.cpu(),
+    )
     fig = plt.figure(figsize=(20, 10))
     axes: list[matplotlib.axes.Axes] = []
     wt_mask_middle = get_mask_middle(mask=actual_masks[0], middle_dim=slice_dim)
@@ -51,10 +58,7 @@ def make_summary_slice_plot(
     for i, title in enumerate(("FLAIR", "T1", "T1 contrast", "T2")):
         ax = fig.add_subplot(gs[0, i])
         axes.append(ax)
-        ax_img = ax.imshow(
-            get_arbitrary_element(images[i], *element_dim),
-            cmap="bone",
-        )
+        ax_img = ax.imshow(np.take(images[i], *element_dim), cmap="bone")
         ax.set_title(title, fontsize=18, weight="bold", y=-0.2)
         fig.colorbar(ax_img)
 
@@ -72,14 +76,14 @@ def make_summary_slice_plot(
 
     all_seg_ax_imgs: list[list[matplotlib.image.AxesImage]] = [
         [
-            ax.imshow(get_arbitrary_element(mask[0], *element_dim), cmap="summer")
+            ax.imshow(np.take(mask[0], *element_dim), cmap="summer")
             for ax, mask in axes_masks
         ],
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~get_arbitrary_element(mask[1], *element_dim).bool(),
-                    get_arbitrary_element(mask[1], *element_dim),
+                    ~np.take(mask[1], *element_dim).bool(),
+                    np.take(mask[1], *element_dim),
                 ),
                 cmap="rainbow",
                 alpha=0.6,
@@ -90,8 +94,8 @@ def make_summary_slice_plot(
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~get_arbitrary_element(mask[2], *element_dim).bool(),
-                    get_arbitrary_element(mask[2], *element_dim),
+                    ~np.take(mask[2], *element_dim).bool(),
+                    np.take(mask[2], *element_dim),
                 ),
                 cmap="winter",
                 alpha=0.6,
@@ -152,6 +156,7 @@ def make_summary_plots(
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
             preds = model(images)
+        os.makedirs(IMAGES_FOLDER, exist_ok=True)
         for mask_i in range(MASK_COUNT):
             summary_fig = make_summary_slice_plot(
                 images=images[0],
@@ -162,6 +167,7 @@ def make_summary_plots(
             summary_fig.savefig(
                 IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_angle{mask_i}.png",
             )
+            plt.close(summary_fig)
         _ = 0  # Debug here
 
 
@@ -227,6 +233,7 @@ def sweep_thresholds(
         ax.set_ylabel("Intersection over Union (IoU)")
         ax.set_title("Discerning Best Binary Threshold")
         fig.savefig(save_filename)
+        plt.close(fig)
 
     return threshold_to_mean_iou
 

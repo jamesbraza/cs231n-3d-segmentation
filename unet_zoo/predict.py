@@ -40,6 +40,12 @@ def make_summary_slice_plot(
     slice_dim: int = 0,
 ) -> matplotlib.figure.Figure:
     """Create a summary plot depicting images, targets, and predictions."""
+    # Take off GPU if not already there
+    images, actual_masks, pred_masks = (
+        images.cpu(),
+        actual_masks.cpu(),
+        pred_masks.cpu(),
+    )
     fig = plt.figure(figsize=(20, 10))
     axes: list[matplotlib.axes.Axes] = []
     wt_mask_middle = get_mask_middle(mask=actual_masks[0], middle_dim=slice_dim)

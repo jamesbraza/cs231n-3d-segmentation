@@ -154,10 +154,10 @@ def make_summary_plots(
     """Make plots of the predicted and actual masks from three angles."""
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
             preds = model(images)
-        os.makedirs(IMAGES_FOLDER, exist_ok=True)
         for mask_i in range(MASK_COUNT):
             summary_fig = make_summary_slice_plot(
                 images=images[0],

@@ -9,6 +9,7 @@ from pytorch3dunet.unet3d.utils import DefaultTensorboardFormatter
 from torch.utils.data import DataLoader
 
 from data.loaders import (
+    MASK_COUNT,
     NUM_SCANS_PER_EXAMPLE,
     TRAIN_VAL_DS_KWARGS,
     BraTS2020MRIScansDataset,
@@ -17,7 +18,6 @@ from data.loaders import (
 from unet_zoo import CHECKPOINTS_FOLDER
 from unet_zoo.utils import infer_device, print_model_summary  # noqa: F401
 
-MASK_COUNT = 3  # WT, TC, ET
 INITIAL_CONV_OUT_CHANNELS = 18
 NUM_GROUPS = 9
 SKIP_SLICES = 5

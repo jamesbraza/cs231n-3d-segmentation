@@ -15,12 +15,12 @@ from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from data.loaders import ET, MASK_COUNT, TC, WT
 from unet_zoo import CHECKPOINTS_FOLDER, IMAGES_FOLDER
 from unet_zoo.metrics import MeanIoU
 from unet_zoo.train import (
     BATCH_SIZE,
     INITIAL_CONV_OUT_CHANNELS,
-    MASK_COUNT,
     NUM_GROUPS,
     NUM_SCANS_PER_EXAMPLE,
     get_train_val_test_scans_datasets,
@@ -49,7 +49,7 @@ def make_summary_slice_plot(
     )
     fig = plt.figure(figsize=(20, 10))
     axes: list[matplotlib.axes.Axes] = []
-    wt_mask_middle = get_mask_middle(mask=actual_masks[0], middle_dim=slice_dim)
+    wt_mask_middle = get_mask_middle(mask=actual_masks[WT], middle_dim=slice_dim)
     element_dim = wt_mask_middle, slice_dim
     gs = gridspec.GridSpec(nrows=2, ncols=4, height_ratios=[1, 1.5])
 
@@ -76,14 +76,14 @@ def make_summary_slice_plot(
 
     all_seg_ax_imgs: list[list[matplotlib.image.AxesImage]] = [
         [
-            ax.imshow(np.take(mask[0], *element_dim), cmap="summer")
+            ax.imshow(np.take(mask[WT], *element_dim), cmap="summer")
             for ax, mask in axes_masks
         ],
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~np.take(mask[1], *element_dim).bool(),
-                    np.take(mask[1], *element_dim),
+                    ~np.take(mask[TC], *element_dim).bool(),
+                    np.take(mask[TC], *element_dim),
                 ),
                 cmap="rainbow",
                 alpha=0.6,
@@ -94,8 +94,8 @@ def make_summary_slice_plot(
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~np.take(mask[2], *element_dim).bool(),
-                    np.take(mask[2], *element_dim),
+                    ~np.take(mask[ET], *element_dim).bool(),
+                    np.take(mask[ET], *element_dim),
                 ),
                 cmap="winter",
                 alpha=0.6,
@@ -151,6 +151,7 @@ def make_summary_plots(
     model: AbstractUNet,
     threshold: float | torch.Tensor = THRESHOLD,
 ) -> None:
+    """Make plots of the predicted and actual masks from three angles."""
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):

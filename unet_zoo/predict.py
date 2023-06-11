@@ -41,7 +41,7 @@ def make_summary_slice_plot(
     slice_dim: int = 0,
 ) -> matplotlib.figure.Figure:
     """Create a summary plot depicting images, targets, and predictions."""
-    # Take off GPU if not already there
+    # Take off GPU, if not already there
     images, actual_masks, pred_masks = (
         images.cpu(),
         actual_masks.cpu(),
@@ -167,6 +167,7 @@ def make_summary_plots(
             summary_fig.savefig(
                 IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_angle{mask_i}.png",
             )
+            plt.close(summary_fig)
         _ = 0  # Debug here
 
 
@@ -232,6 +233,7 @@ def sweep_thresholds(
         ax.set_ylabel("Intersection over Union (IoU)")
         ax.set_title("Discerning Best Binary Threshold")
         fig.savefig(save_filename)
+        plt.close(fig)
 
     return threshold_to_mean_iou
 

@@ -24,7 +24,7 @@ from unet_zoo.train import (
     NUM_SCANS_PER_EXAMPLE,
     get_train_val_test_scans_datasets,
 )
-from unet_zoo.utils import get_arbitrary_element, get_mask_middle, infer_device
+from unet_zoo.utils import get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
@@ -51,10 +51,7 @@ def make_summary_slice_plot(
     for i, title in enumerate(("FLAIR", "T1", "T1 contrast", "T2")):
         ax = fig.add_subplot(gs[0, i])
         axes.append(ax)
-        ax_img = ax.imshow(
-            get_arbitrary_element(images[i], *element_dim),
-            cmap="bone",
-        )
+        ax_img = ax.imshow(np.take(images[i], *element_dim), cmap="bone")
         ax.set_title(title, fontsize=18, weight="bold", y=-0.2)
         fig.colorbar(ax_img)
 
@@ -72,14 +69,14 @@ def make_summary_slice_plot(
 
     all_seg_ax_imgs: list[list[matplotlib.image.AxesImage]] = [
         [
-            ax.imshow(get_arbitrary_element(mask[0], *element_dim), cmap="summer")
+            ax.imshow(np.take(mask[0], *element_dim), cmap="summer")
             for ax, mask in axes_masks
         ],
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~get_arbitrary_element(mask[1], *element_dim).bool(),
-                    get_arbitrary_element(mask[1], *element_dim),
+                    ~np.take(mask[1], *element_dim).bool(),
+                    np.take(mask[1], *element_dim),
                 ),
                 cmap="rainbow",
                 alpha=0.6,
@@ -90,8 +87,8 @@ def make_summary_slice_plot(
         [
             ax.imshow(
                 np.ma.masked_where(
-                    ~get_arbitrary_element(mask[2], *element_dim).bool(),
-                    get_arbitrary_element(mask[2], *element_dim),
+                    ~np.take(mask[2], *element_dim).bool(),
+                    np.take(mask[2], *element_dim),
                 ),
                 cmap="winter",
                 alpha=0.6,

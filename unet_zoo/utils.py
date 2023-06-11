@@ -1,7 +1,5 @@
 from collections import deque
-from typing import TypeVar
 
-import numpy as np
 import torch
 from torchinfo import summary
 
@@ -44,18 +42,3 @@ def get_mask_middle(
             last = i - 1
         prior_max = max(window)
     return (first + last) // 2
-
-
-TArr = TypeVar("TArr", np.ndarray, torch.Tensor)
-
-
-def get_arbitrary_element(a: TArr, element: int, dim: int = 0) -> TArr:
-    """
-    Get the item at an element along a dim.
-
-    TODO: figure out how to do this in numpy or torch natively.
-
-    Something like a[:, ..., element, ..., :], where element's position is
-    controlled by dim.
-    """
-    return a[(*(slice(None) for _ in range(dim)), element)]

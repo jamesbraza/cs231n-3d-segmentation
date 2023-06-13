@@ -255,10 +255,10 @@ def make_3d_visualization(
 
         kwargs = {"ex_i": ex_i, "image": compressed_image}
         _plot_images_masks(masks=binary_preds, threshold=threshold, **kwargs)
+        del binary_preds
         _plot_images_masks(masks=binary_targets, name="labels", **kwargs)
+        del binary_targets, compressed_image
         _ = 0  # Debug here
-        if ex_i > 2:  # TODO: remove me
-            break
 
 
 def sweep_thresholds(

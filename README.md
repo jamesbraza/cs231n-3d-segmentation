@@ -26,7 +26,7 @@ Here are several cross-sections from the test dataset's example 2:
 |   1   | ![cross-section angle 1](docs/assets/unet3d_inference_ex2_angle1.png) |
 |   2   | ![cross-section angle 2](docs/assets/unet3d_inference_ex2_angle2.png) |
 
-Here is the same example in a 3-D cross-section.
+Here is the same example rendered in 3-D.
 The colors code is
 grey is healthy tissue,
 green is non-enhancing tumor core,
@@ -45,14 +45,16 @@ where the batch dimension B is actually the original MRI's depth dimension D.
 
 This slicing detail effectively turns a batch of MRI volumes
 into a batch of slices from MRI volumes.
-This means a 2-D U-Net doesn't learn upon data with 3-D spatial information.
+This means a 2-D U-Net doesn't learn upon
+data containing 3-D spatial information.
 The 2-D U-Net model was trained using the slices dataset
 found in [data/loaders.py](data/loaders.py).
 
-The 2-D U-Net uses 2-D convolution and max pooling layers,
+The 2-D U-Net uses 2-D convolution and max pooling layers (as opposed to 3-D ones),
 so it has 1/3rd the weights of a 3-D U-Net.
 This lightweight model runs substantially faster,
-but generally under-performs a 3-D U-Net given the same training data.
+but, given the same training data,
+generally under-performs a 3-D U-Net when looking at IoU with labels.
 
 Trained weights are available in
 [unet_zoo/checkpoints on the experiment/unet2d branch][7].
@@ -67,7 +69,7 @@ Here are several cross-sections from the test dataset's example 2:
 |   1   | ![cross-section angle 1](docs/assets/unet2d_inference_ex2_angle1.png) |
 |   2   | ![cross-section angle 2](docs/assets/unet2d_inference_ex2_angle2.png) |
 
-Here is the same example in a 3-D cross-section,
+Here is the same example rendered in 3-D,
 colors match the [3-D U-Net summary](#3d_unet_summary)'s colors.
 
 |                            Labels                             |                                    Predictions                                     |

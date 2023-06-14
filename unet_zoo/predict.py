@@ -155,9 +155,9 @@ def make_summary_plots(
     threshold: float | torch.Tensor = THRESHOLD,
 ) -> None:
     """Make plots of the predicted and actual masks from three angles."""
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
             preds = model(images)
@@ -238,9 +238,9 @@ def make_3d_visualization(
     threshold: float | torch.Tensor = THRESHOLD,
 ) -> None:
     """Save 3-D visualizations test dataset's labels and predictions."""
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with (
             rich.status.Status(f"running prediction on example {ex_i}"),

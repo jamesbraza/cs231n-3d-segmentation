@@ -2,6 +2,39 @@
 
 [Stanford CS231N Deep Learning for Computer Vision][1]: Class Project
 
+## Summary
+
+### 3-D U-Net
+
+A 3-D U-Net gets passed batches of four MRI scans (B x 4 x D x H x W),
+and processes them using 3-D convolutions and max pooling layers.
+The idea is the model can utilize 3-D spatial information,
+not just 2-D (per-slice) info.
+
+Trained weights are available in [unet_zoo/checkpoints](unet_zoo/checkpoints).
+The binary threshold used on the model's raw predictions was 0.25,
+we found this maximized the [IoU](https://en.wikipedia.org/wiki/Jaccard_index)
+within the validation dataset's binarized predictions and labels.
+
+Here are several cross-sections from a test dataset example:
+
+| Angle |                                 Image                                 |
+| :---: | :-------------------------------------------------------------------: |
+|   0   | ![cross-section angle 1](docs/assets/unet3d_inference_ex2_angle0.png) |
+|   1   | ![cross-section angle 1](docs/assets/unet3d_inference_ex2_angle1.png) |
+|   2   | ![cross-section angle 2](docs/assets/unet3d_inference_ex2_angle2.png) |
+
+And here is the same example in a 3-D cross-section.
+The colors code is
+grey is healthy tissue,
+green is non-enhancing tumor core,
+blue is peritumoral edema,
+and purple is Gd-enhancing tumor.
+
+|                                  Labels                                  |                                    Predictions                                     |
+| :----------------------------------------------------------------------: | :--------------------------------------------------------------------------------: |
+| ![3-D labels](<docs/assets/unet3d_labels_ex2_ear(60,%20210,%20300).png>) | ![3-D predictions](<docs/assets/unet3d_predictions_ex2_ear(60,%20210,%20300).png>) |
+
 ## Dataset
 
 We used the [BraTS2020 Dataset (Training + Validation)][5] dataset from Kaggle.

@@ -18,7 +18,7 @@ from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from data.loaders import ET, MASK_COUNT, TC, WT, BraTS2020MRISlicesDataset
+from data.loaders import ET, MASK_COUNT, TC, WT
 from unet_zoo import CHECKPOINTS_FOLDER, IMAGES_FOLDER
 from unet_zoo.metrics import MeanIoU
 from unet_zoo.train import (
@@ -31,7 +31,7 @@ from unet_zoo.utils import get_mask_middle, infer_device
 
 LAST_MODEL = CHECKPOINTS_FOLDER / "last_checkpoint.pytorch"
 BEST_MODEL = CHECKPOINTS_FOLDER / "best_checkpoint.pytorch"
-THRESHOLD = 0.25  # Tuned parameter
+THRESHOLD = 0.06  # Tuned parameter
 DEVICE = infer_device()
 
 
@@ -149,6 +149,15 @@ def make_summary_slice_plot(
     return fig
 
 
+def predict_full_mri(model: UNet2D, scans: torch.Tensor) -> torch.Tensor:
+    """Run a UNet2D prediction on a full MRI scan using a for loop."""
+    # Stitch together 3-D MRI from 2-D slices
+    return torch.stack(
+        tuple(model(scans[:, :, slice_i]) for slice_i in range(scans.shape[-3])),
+        dim=-3,
+    )
+
+
 def make_summary_plots(
     model: AbstractUNet,
     threshold: float | torch.Tensor = THRESHOLD,
@@ -157,11 +166,9 @@ def make_summary_plots(
     os.makedirs(IMAGES_FOLDER, exist_ok=True)
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    for ex_i, (images, targets) in enumerate(
-        DataLoader(BraTS2020MRISlicesDataset(scans_ds=test_ds)),
-    ):
+    for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
-            preds = model(images)
+            preds = predict_full_mri(model, scans=images)
         for mask_i in range(MASK_COUNT):
             summary_fig = make_summary_slice_plot(
                 images=images[0],
@@ -170,7 +177,7 @@ def make_summary_plots(
                 slice_dim=mask_i,
             )
             summary_fig.savefig(
-                IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_angle{mask_i}.png",
+                IMAGES_FOLDER / f"unet2d_inference_ex{ex_i}_angle{mask_i}.png",
             )
             plt.close(summary_fig)
         _ = 0  # Debug here
@@ -247,7 +254,7 @@ def make_3d_visualization(
             rich.status.Status(f"running prediction on example {ex_i}"),
             torch.no_grad(),
         ):
-            preds = model(images)
+            preds = predict_full_mri(model, scans=images)
         # Unbatch, convert to bool, take off GPU (if not already there)
         compressed_image = (images[0].max(dim=0)[0] > 0).cpu()
         binary_targets = targets[0].bool().cpu()
@@ -285,14 +292,9 @@ def sweep_thresholds(
         iterator = np.linspace(*min_max, num)
     for thresholds in tqdm(iterator, desc="trying thresholds"):
         ious: list[float] = []
-        for images, targets in tqdm(
-            DataLoader(BraTS2020MRISlicesDataset(scans_ds=val_ds)),
-            desc="compiling ious",
-        ):
+        for images, targets in tqdm(DataLoader(val_ds), desc="compiling ious"):
             with torch.no_grad():
-                # Emulating singleton Z dimension behavior of pytorch-3dunet's
-                # Trainer, as 5-D is required to use their MeanIoU
-                preds = model(images.squeeze(dim=-3)).unsqueeze(dim=-3)
+                preds = predict_full_mri(model, scans=images)
             thresholds_tensor = torch.as_tensor(thresholds, device=DEVICE)
             if multi_channel:
                 thresholds_tensor = thresholds_tensor.reshape(

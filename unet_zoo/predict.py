@@ -155,9 +155,9 @@ def make_summary_plots(
     threshold: float | torch.Tensor = THRESHOLD,
 ) -> None:
     """Make plots of the predicted and actual masks from three angles."""
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
             preds = model(images)
@@ -238,9 +238,9 @@ def make_3d_visualization(
     threshold: float | torch.Tensor = THRESHOLD,
 ) -> None:
     """Save 3-D visualizations test dataset's labels and predictions."""
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
-    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with (
             rich.status.Status(f"running prediction on example {ex_i}"),
@@ -317,8 +317,10 @@ def sweep_thresholds(
         if multi_channel:
             for x, label in zip(storage_wt_tc_et, ["WT", "TC", "ET"], strict=True):
                 ax.scatter(x, mean_ious, label=label)
+            ax.legend()
         else:
             ax.scatter(*zip(*list(threshold_to_mean_iou.items()), strict=True))
+        ax.set_xlim(left=max(min_max[0] - 0.05, 0), right=min(min_max[1] + 0.05, 1.0))
         ax.set_xlabel("Binary threshold")
         ax.set_ylabel("Intersection over Union (IoU)")
         ax.set_title("Discerning Best Binary Threshold")

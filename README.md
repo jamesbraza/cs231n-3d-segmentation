@@ -27,7 +27,7 @@ Here are several cross-sections from the test dataset's example 2:
 |   2   | ![cross-section angle 2](docs/assets/unet3d_inference_ex2_angle2.png) |
 
 Here is the same example rendered in 3-D.
-The colors code is
+The color code is
 grey is healthy tissue,
 green is non-enhancing tumor core,
 blue is peritumoral edema,
@@ -59,7 +59,7 @@ generally under-performs a 3-D U-Net when looking at IoU with labels.
 Trained weights are available in
 [unet_zoo/checkpoints on the experiment/unet2d branch][7].
 The binary threshold used on the 2-D U-Net model's raw predictions was 0.06,
-using the IoU procedure from the [3-D U-Net summary](#3d_unet_summary).
+using the IoU procedure detailed in the [3-D U-Net summary](#3d_unet_summary).
 
 Here are several cross-sections from the test dataset's example 2:
 
@@ -70,7 +70,8 @@ Here are several cross-sections from the test dataset's example 2:
 |   2   | ![cross-section angle 2](docs/assets/unet2d_inference_ex2_angle2.png) |
 
 Here is the same example rendered in 3-D,
-colors match the [3-D U-Net summary](#3d_unet_summary)'s colors.
+its color code corresponds with
+the [3-D U-Net summary](#3d_unet_summary)'s colors.
 
 |                            Labels                             |                                    Predictions                                     |
 | :-----------------------------------------------------------: | :--------------------------------------------------------------------------------: |

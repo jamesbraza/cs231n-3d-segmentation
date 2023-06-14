@@ -63,8 +63,8 @@ python -m pip install --no-cache-dir --progress-bar off -r requirements.txt
 Step 4: download BraTS 2020 dataset using the Kaggle API.
 
 ```shell
-# Starting from non-VM
-export SEG01=111.222.333.444
+# Run these from local (non-VM) machine
+export SEG01=<vm IP address>
 scp -pr ~/.kaggle/ ubuntu@$SEG01:~/.kaggle/
 ssh ubuntu@$SEG01
 cd cs231n-3d-segmentation
@@ -106,7 +106,7 @@ tensorboard --logdir <path> --host 0.0.0.0 --port 6006
 Then on the local machine:
 
 ```shell
-export SEG01=111.222.333.444
+export SEG01=<vm IP address>
 python -m webbrowser http://$SEG01:6006/
 # or
 open http://$SEG01:6006/

@@ -1,5 +1,6 @@
 import itertools
 import os
+from collections.abc import Iterable
 from typing import Any
 
 import matplotlib.axes
@@ -9,7 +10,9 @@ import matplotlib.image
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+import rich.status
 import torch
+from matplotlib import colors
 from pytorch3dunet.unet3d.model import AbstractUNet, UNet3D
 from pytorch3dunet.unet3d.utils import load_checkpoint
 from torch.utils.data import DataLoader
@@ -154,10 +157,10 @@ def make_summary_plots(
     """Make plots of the predicted and actual masks from three angles."""
     model.eval()
     test_ds = get_train_val_test_scans_datasets()[2]
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
     for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
         with torch.no_grad():
             preds = model(images)
-        os.makedirs(IMAGES_FOLDER, exist_ok=True)
         for mask_i in range(MASK_COUNT):
             summary_fig = make_summary_slice_plot(
                 images=images[0],
@@ -169,6 +172,92 @@ def make_summary_plots(
                 IMAGES_FOLDER / f"unet3d_inference_ex{ex_i}_angle{mask_i}.png",
             )
             plt.close(summary_fig)
+        _ = 0  # Debug here
+
+
+KNOWN_APPEALING_ELEV_AZIM_ROLL = (
+    (60, 0, 90),
+    (60, 210, 300),
+    (120, 150, 240),
+    (240, 180, 270),
+    (300, 150, 300),
+)
+
+
+def _plot_images_masks(
+    ex_i: int,
+    image: np.ndarray,
+    masks: np.ndarray,
+    name: str = "predictions",
+    threshold: float | torch.Tensor | None = None,
+    elev_azim_rolls: Iterable[
+        tuple[int | None, int | None, int | None]
+    ] = KNOWN_APPEALING_ELEV_AZIM_ROLL,
+) -> None:
+    """Save a figure of the input image and masks."""
+    fig = plt.figure()
+    ax = fig.add_subplot(projection="3d")
+    with rich.status.Status(f"plotting example {ex_i}'s WT mask"):
+        wt_mask = masks[WT] >= threshold if threshold is not None else masks[WT]
+        facecolors = np.empty((*wt_mask.shape, 4), dtype=object)
+        facecolors[wt_mask] = colors.to_rgba("green", alpha=0.5)
+        ax.voxels(wt_mask, facecolors=facecolors)
+        del wt_mask
+    with rich.status.Status(f"plotting example {ex_i}'s TC mask"):
+        tc_mask = masks[TC] >= threshold if threshold is not None else masks[TC]
+        facecolors = np.empty((*tc_mask.shape, 4), dtype=object)
+        facecolors[tc_mask] = colors.to_rgba("blue", alpha=0.75)
+        ax.voxels(tc_mask, facecolors=facecolors)
+        del tc_mask
+    with rich.status.Status(f"plotting example {ex_i}'s ET mask"):
+        et_mask = masks[ET] >= threshold if threshold is not None else masks[ET]
+        facecolors = np.empty(et_mask.shape, dtype=object)
+        facecolors[et_mask] = "purple"
+        ax.voxels(et_mask, facecolors=facecolors)
+        del et_mask, masks
+    with rich.status.Status(f"plotting example {ex_i}'s images"):
+        facecolors = np.empty((*image.shape, 4), dtype=object)
+        facecolors[image] = colors.to_rgba("grey", alpha=0.25)
+        ax.voxels(image, facecolors=facecolors)
+        del image
+    plt.tight_layout()
+    # After iterating over all 30°, these combinations looked good
+    for elev_azim_roll in elev_azim_rolls:
+        destination = IMAGES_FOLDER / f"unet3d_{name}_ex{ex_i}_ear{elev_azim_roll}.png"
+        with rich.status.Status(
+            f"saving 3D visualization of example {ex_i} to {destination}",
+        ):
+            ax.view_init(*elev_azim_roll)
+            fig.canvas.draw()
+            fig.savefig(destination, transparent=True)
+    plt.close(fig)
+
+
+def make_3d_visualization(
+    model: AbstractUNet,
+    threshold: float | torch.Tensor = THRESHOLD,
+) -> None:
+    """Save 3-D visualizations test dataset's labels and predictions."""
+    model.eval()
+    test_ds = get_train_val_test_scans_datasets()[2]
+    os.makedirs(IMAGES_FOLDER, exist_ok=True)
+    for ex_i, (images, targets) in enumerate(DataLoader(test_ds)):
+        with (
+            rich.status.Status(f"running prediction on example {ex_i}"),
+            torch.no_grad(),
+        ):
+            preds = model(images)
+        # Unbatch, convert to bool, take off GPU (if not already there)
+        compressed_image = (images[0].max(dim=0)[0] > 0).cpu()
+        binary_targets = targets[0].bool().cpu()
+        binary_preds = (preds[0] >= threshold).cpu()
+        del images, targets, preds
+
+        kwargs = {"ex_i": ex_i, "image": compressed_image}
+        _plot_images_masks(masks=binary_preds, threshold=threshold, **kwargs)
+        del binary_preds
+        _plot_images_masks(masks=binary_targets, name="labels", **kwargs)
+        del binary_targets, compressed_image
         _ = 0  # Debug here
 
 
@@ -249,7 +338,7 @@ def main() -> None:
     ).to(device=DEVICE)
     state_dict: dict[str, Any] = load_checkpoint(BEST_MODEL, model)  # noqa: F841
 
-    make_summary_plots(model)
+    make_3d_visualization(model)
 
 
 if __name__ == "__main__":

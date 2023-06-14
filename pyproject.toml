@@ -122,6 +122,7 @@ ignore = [
     "ERA001",  # Nice for project
     "FBT001",  # FBT001, FBT002: overly pedantic
     "FBT002",
+    "FIX",  # Don't care to prevent TODO, FIXME, etc.
     "G004",  # f-strings are convenient
     "N806",  # N806, N812, N816: loosen naming for project
     "N812",
@@ -139,6 +140,7 @@ ignore = [
     "TRY003",  # Overly pedantic
 ]
 unfixable = [
+    "ERA001",  # While debugging, temporarily commenting code can be useful
     "F401",  # Unused imports are nice for project
     "F841",  # Unused locals are nice for project
 ]

@@ -59,6 +59,7 @@ class BraTS2020MRIScansDataset(Dataset):
     # t2 = T2-weighted (T2)
     NONMASK_EXTENSIONS = ["_flair.nii", "_t1.nii", "_t1ce.nii", "_t2.nii"]
     MASK_EXTENSION = "_seg.nii"
+    # See BraTS2020Classes above for descriptions
     WT, TC, ET = WT_TC_ET = 0, 1, 2
 
     def __init__(

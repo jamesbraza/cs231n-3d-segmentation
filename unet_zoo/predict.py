@@ -231,7 +231,7 @@ def _plot_images_masks(
     plt.tight_layout()
     # After iterating over all 30°, these combinations looked good
     for elev_azim_roll in elev_azim_rolls:
-        destination = IMAGES_FOLDER / f"unet3d_{name}_ex{ex_i}_ear{elev_azim_roll}.png"
+        destination = IMAGES_FOLDER / f"unet2d_{name}_ex{ex_i}_ear{elev_azim_roll}.png"
         with rich.status.Status(
             f"saving 3D visualization of example {ex_i} to {destination}",
         ):
